@@ -1,0 +1,22 @@
+# Status-only payloads: logs are refetched via queries when these fire,
+# matching lagoon-ui's pattern.
+subscription DeploymentChanged($environment: Int!) {
+  deploymentChanged(environment: $environment) {
+    id
+    name
+    status
+    buildStep
+    started
+    completed
+  }
+}
+
+subscription TaskChanged($environment: Int!) {
+  taskChanged(environment: $environment) {
+    id
+    name
+    status
+    started
+    completed
+  }
+}

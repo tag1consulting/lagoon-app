@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useDeploymentEvents } from '@/api/liveUpdates';
 import { durationLabel } from '@/components/DeploymentRow';
 import { LogViewer } from '@/components/LogViewer';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -23,7 +24,7 @@ export default function DeploymentScreen() {
     deploymentName: string;
   }>();
 
-  const { data, error, startPolling, stopPolling } = useQuery(DeploymentWithLogDocument, {
+  const { data, error, refetch, startPolling, stopPolling } = useQuery(DeploymentWithLogDocument, {
     variables: {
       name: envName ?? '',
       project: Number(projectId),
@@ -38,6 +39,10 @@ export default function DeploymentScreen() {
     (d) => d?.name === deploymentName,
   );
   const running = isActiveStatus(deployment?.status);
+
+  // Status pushes trigger a log refetch (subscription payloads carry no log);
+  // the poll below remains the fallback.
+  useDeploymentEvents(data?.environmentByName?.id, () => void refetch());
 
   // Poll while the build is live; stop once terminal.
   useEffect(() => {

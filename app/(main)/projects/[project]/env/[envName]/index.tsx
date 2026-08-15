@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useDeploymentEvents } from '@/api/liveUpdates';
 import { DeploymentRow } from '@/components/DeploymentRow';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Card, EmptyState } from '@/components/ui';
@@ -26,7 +27,7 @@ function DeploymentsTab({
   envName: string;
   projectId: string;
 }) {
-  const { data, loading, error, startPolling, stopPolling } = useQuery(
+  const { data, loading, error, refetch, startPolling, stopPolling } = useQuery(
     EnvironmentDeploymentsDocument,
     {
       variables: { name: envName, project: Number(projectId), limit: 25 },
@@ -38,6 +39,10 @@ function DeploymentsTab({
     (d): d is NonNullable<typeof d> => Boolean(d),
   );
   const anyActive = deployments.some((d) => isActiveStatus(d.status));
+
+  // Push-based updates when the instance supports subscriptions; the poll
+  // below stays as the fallback for blocked WebSockets.
+  useDeploymentEvents(data?.environmentByName?.id, () => void refetch());
 
   useEffect(() => {
     if (anyActive) {

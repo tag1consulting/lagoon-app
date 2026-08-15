@@ -3,6 +3,9 @@ import { CombinedGraphQLErrors, ServerError } from '@apollo/client/errors';
 import { SetContextLink } from '@apollo/client/link/context';
 import { ErrorLink } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { OperationTypeNode } from 'graphql';
+import { createClient } from 'graphql-ws';
 import { Observable } from 'rxjs';
 
 import { forceRefresh, getValidAccessToken, useAuthStore } from '@/auth/authManager';
@@ -66,5 +69,27 @@ export function buildLinkChain(context: LagoonContext): ApolloLink {
 
   const httpLink = new HttpLink({ uri: context.graphqlUrl });
 
-  return ApolloLink.from([authLink, errorLink, retryLink, httpLink]);
+  const httpChain = ApolloLink.from([authLink, errorLink, retryLink, httpLink]);
+
+  // Subscriptions ride a lazy WebSocket (Lagoon >= 2.27 serves graphql-ws on
+  // the same /graphql path). Auth goes via connectionParams, matching
+  // lagoon-ui. Subscription failures are non-fatal — every consumer has a
+  // polling fallback — so the socket retries quietly and closes when idle.
+  const wsClient = createClient({
+    url: context.graphqlUrl.replace(/^http/, 'ws'),
+    lazy: true,
+    lazyCloseTimeout: 30_000,
+    retryAttempts: 5,
+    connectionParams: async () => {
+      const token = await getValidAccessToken(context);
+      return token ? { authToken: token } : {};
+    },
+  });
+  const wsLink = new GraphQLWsLink(wsClient);
+
+  return ApolloLink.split(
+    (operation) => operation.operationType === OperationTypeNode.SUBSCRIPTION,
+    wsLink,
+    httpChain,
+  );
 }
