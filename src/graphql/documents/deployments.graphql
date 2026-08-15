@@ -1,0 +1,37 @@
+query EnvironmentDeployments($name: String!, $project: Int!, $limit: Int) {
+  environmentByName(name: $name, project: $project) {
+    id
+    deployments(limit: $limit) {
+      id
+      name
+      status
+      created
+      started
+      completed
+      buildStep
+      buildType
+      sourceUser
+      priority
+    }
+  }
+}
+
+# Dedicated log query: buildLog can be multiple MB, so it must never ride
+# along with list-level queries.
+query DeploymentWithLog($name: String!, $project: Int!, $deploymentName: String!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    deployments(name: $deploymentName) {
+      id
+      name
+      status
+      created
+      started
+      completed
+      buildStep
+      buildType
+      sourceUser
+      buildLog
+    }
+  }
+}

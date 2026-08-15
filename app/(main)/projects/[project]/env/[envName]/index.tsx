@@ -1,12 +1,71 @@
 import { useQuery } from '@apollo/client/react';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { DeploymentRow } from '@/components/DeploymentRow';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Card, EmptyState } from '@/components/ui';
-import { EnvironmentInfoDocument, type EnvironmentInfoQuery } from '@/graphql/generated/graphql';
+import {
+  EnvironmentDeploymentsDocument,
+  EnvironmentInfoDocument,
+  type EnvironmentInfoQuery,
+} from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
+import { isActiveStatus } from '@/theme/status';
+
+/** Refetch cadence for the deployment list while any build is live. */
+const ACTIVE_POLL_MS = 10_000;
+
+function DeploymentsTab({
+  project,
+  envName,
+  projectId,
+}: {
+  project: string;
+  envName: string;
+  projectId: string;
+}) {
+  const { data, loading, error, startPolling, stopPolling } = useQuery(
+    EnvironmentDeploymentsDocument,
+    {
+      variables: { name: envName, project: Number(projectId), limit: 25 },
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+
+  const deployments = (data?.environmentByName?.deployments ?? []).filter(
+    (d): d is NonNullable<typeof d> => Boolean(d),
+  );
+  const anyActive = deployments.some((d) => isActiveStatus(d.status));
+
+  useEffect(() => {
+    if (anyActive) {
+      startPolling(ACTIVE_POLL_MS);
+      return () => stopPolling();
+    }
+    stopPolling();
+  }, [anyActive, startPolling, stopPolling]);
+
+  if (error) return <EmptyState title="Could not load deployments" body={error.message} />;
+  if (!loading && deployments.length === 0) {
+    return <EmptyState title="No deployments" body="This environment has not been deployed yet." />;
+  }
+
+  return (
+    <View style={styles.tabBody}>
+      {deployments.map((deployment) => (
+        <DeploymentRow
+          key={deployment.id ?? deployment.name}
+          deployment={deployment}
+          project={project}
+          envName={envName}
+          projectId={projectId}
+        />
+      ))}
+    </View>
+  );
+}
 
 const TABS = ['Deployments', 'Tasks', 'Info'] as const;
 type Tab = (typeof TABS)[number];
@@ -101,7 +160,11 @@ export default function EnvironmentScreen() {
         {error ? <EmptyState title="Could not load environment" body={error.message} /> : null}
         {env && tab === 'Info' ? <InfoTab env={env} /> : null}
         {tab === 'Deployments' ? (
-          <EmptyState title="Deployments" body="Deployment history lands in the next milestone." />
+          <DeploymentsTab
+            project={project ?? ''}
+            envName={envName ?? ''}
+            projectId={projectId ?? ''}
+          />
         ) : null}
         {tab === 'Tasks' ? (
           <EmptyState title="Tasks" body="Task history lands in a later milestone." />
