@@ -1,7 +1,10 @@
+import { ApolloProvider } from '@apollo/client/react';
 import { Link, Redirect, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
 
+import { getClient } from '@/api/clientFactory';
+import { refreshLagoonVersion } from '@/api/versionGate';
 import { getValidAccessToken, useSessionStatus } from '@/auth/authManager';
 import { useActiveContext } from '@/contexts/store';
 import { useTheme } from '@/theme';
@@ -63,15 +66,39 @@ export default function MainLayout() {
     return <Redirect href="/login" />;
   }
 
+  return <AuthedApp key={context.id} contextId={context.id} />;
+}
+
+function AuthedApp({ contextId }: { contextId: string }) {
+  const theme = useTheme();
+  // Re-read from the store so edits (e.g. a renamed context) propagate.
+  const context = useActiveContext();
+  if (!context || context.id !== contextId) return null;
+  const client = getClient(context);
+
   return (
-    <Stack
-      key={context.id}
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.surface },
-        headerTintColor: theme.text,
-        contentStyle: { backgroundColor: theme.background },
-        headerRight: () => <ContextSwitcherLink name={context.name} />,
-      }}
-    />
+    <ApolloProvider client={client}>
+      <VersionProbe contextId={contextId} />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.surface },
+          headerTintColor: theme.text,
+          contentStyle: { backgroundColor: theme.background },
+          headerRight: () => <ContextSwitcherLink name={context.name} />,
+        }}
+      />
+    </ApolloProvider>
   );
+}
+
+function VersionProbe({ contextId }: { contextId: string }) {
+  const context = useActiveContext();
+  useEffect(() => {
+    if (context && context.id === contextId) {
+      void refreshLagoonVersion(getClient(context), contextId);
+    }
+    // Probe once per authed mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextId]);
+  return null;
 }

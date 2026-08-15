@@ -1,0 +1,25 @@
+query Me {
+  me {
+    id
+    email
+    firstName
+    lastName
+  }
+}
+
+query LagoonVersion {
+  lagoonVersion
+}
+
+query AllProjects {
+  allProjects {
+    id
+    name
+    environments {
+      id
+      name
+      environmentType
+      updated
+    }
+  }
+}
