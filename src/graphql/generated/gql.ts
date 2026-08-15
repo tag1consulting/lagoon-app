@@ -14,9 +14,11 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
+    "query ProjectByName($name: String!) {\n  projectByName(name: $name) {\n    id\n    name\n    gitUrl\n    productionEnvironment\n    environments {\n      id\n      name\n      deployType\n      environmentType\n      route\n      updated\n    }\n  }\n}\n\nquery EnvironmentInfo($name: String!, $project: Int!) {\n  environmentByName(name: $name, project: $project) {\n    id\n    name\n    deployType\n    deployBaseRef\n    environmentType\n    openshiftProjectName\n    created\n    updated\n    route\n    routes\n    services {\n      id\n      name\n      type\n      replicas\n      updated\n    }\n    facts(keyFacts: true, limit: 100) {\n      id\n      name\n      value\n      source\n      category\n      service\n    }\n  }\n}": typeof types.ProjectByNameDocument,
     "query Me {\n  me {\n    id\n    email\n    firstName\n    lastName\n  }\n}\n\nquery LagoonVersion {\n  lagoonVersion\n}\n\nquery AllProjects {\n  allProjects {\n    id\n    name\n    environments {\n      id\n      name\n      environmentType\n      updated\n    }\n  }\n}": typeof types.MeDocument,
 };
 const documents: Documents = {
+    "query ProjectByName($name: String!) {\n  projectByName(name: $name) {\n    id\n    name\n    gitUrl\n    productionEnvironment\n    environments {\n      id\n      name\n      deployType\n      environmentType\n      route\n      updated\n    }\n  }\n}\n\nquery EnvironmentInfo($name: String!, $project: Int!) {\n  environmentByName(name: $name, project: $project) {\n    id\n    name\n    deployType\n    deployBaseRef\n    environmentType\n    openshiftProjectName\n    created\n    updated\n    route\n    routes\n    services {\n      id\n      name\n      type\n      replicas\n      updated\n    }\n    facts(keyFacts: true, limit: 100) {\n      id\n      name\n      value\n      source\n      category\n      service\n    }\n  }\n}": types.ProjectByNameDocument,
     "query Me {\n  me {\n    id\n    email\n    firstName\n    lastName\n  }\n}\n\nquery LagoonVersion {\n  lagoonVersion\n}\n\nquery AllProjects {\n  allProjects {\n    id\n    name\n    environments {\n      id\n      name\n      environmentType\n      updated\n    }\n  }\n}": types.MeDocument,
 };
 
@@ -34,6 +36,10 @@ const documents: Documents = {
  */
 export function graphql(source: string): unknown;
 
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "query ProjectByName($name: String!) {\n  projectByName(name: $name) {\n    id\n    name\n    gitUrl\n    productionEnvironment\n    environments {\n      id\n      name\n      deployType\n      environmentType\n      route\n      updated\n    }\n  }\n}\n\nquery EnvironmentInfo($name: String!, $project: Int!) {\n  environmentByName(name: $name, project: $project) {\n    id\n    name\n    deployType\n    deployBaseRef\n    environmentType\n    openshiftProjectName\n    created\n    updated\n    route\n    routes\n    services {\n      id\n      name\n      type\n      replicas\n      updated\n    }\n    facts(keyFacts: true, limit: 100) {\n      id\n      name\n      value\n      source\n      category\n      service\n    }\n  }\n}"): (typeof documents)["query ProjectByName($name: String!) {\n  projectByName(name: $name) {\n    id\n    name\n    gitUrl\n    productionEnvironment\n    environments {\n      id\n      name\n      deployType\n      environmentType\n      route\n      updated\n    }\n  }\n}\n\nquery EnvironmentInfo($name: String!, $project: Int!) {\n  environmentByName(name: $name, project: $project) {\n    id\n    name\n    deployType\n    deployBaseRef\n    environmentType\n    openshiftProjectName\n    created\n    updated\n    route\n    routes\n    services {\n      id\n      name\n      type\n      replicas\n      updated\n    }\n    facts(keyFacts: true, limit: 100) {\n      id\n      name\n      value\n      source\n      category\n      service\n    }\n  }\n}"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
