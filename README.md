@@ -30,6 +30,16 @@ npm run typecheck
 npm test
 ```
 
+## GraphQL schema
+
+`graphql/schema.graphql` is a vendored snapshot of the Lagoon API schema, extracted from the `gql` template in [`services/api/src/typeDefs.js`](https://github.com/uselagoon/lagoon/blob/main/services/api/src/typeDefs.js) at `uselagoon/lagoon` `main`. To refresh it, copy the template literal's contents from that file into `graphql/schema.graphql` (or introspect a live instance: `npx get-graphql-schema https://api.<host>/graphql -h "Authorization=Bearer $TOKEN"`), then run:
+
+```bash
+npm run codegen
+```
+
+Typed documents live in `src/graphql/documents/*.graphql`; generated output is committed and CI fails if it drifts (`npm run codegen:check`). Query selections stay conservative so older Lagoon instances keep working; newer API surface is gated by `src/api/versionGate.ts` using the instance's `lagoonVersion`.
+
 ## Builds
 
 EAS profiles in `eas.json`:
@@ -38,7 +48,9 @@ EAS profiles in `eas.json`:
 - `preview` — release APK for internal hand-off: `eas build --profile preview --platform android`
 - `production` — AAB (Play Store), auto-incrementing version
 
-iOS: `eas build --profile preview --platform ios` once Apple credentials are configured in EAS.
+iOS: `eas build --profile preview --platform ios` once Apple credentials are configured in EAS. There is no iOS-specific code — the URL scheme and auth-session browser behavior come from the shared Expo config.
+
+A manual GitHub Actions workflow (`EAS Build`) triggers cloud builds; it needs an `EXPO_TOKEN` repository secret (create one at https://expo.dev/settings/access-tokens).
 
 ## Connecting to a Lagoon instance
 

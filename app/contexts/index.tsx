@@ -57,6 +57,11 @@ export default function ContextsScreen() {
       <Stack.Screen
         options={{
           title: 'Lagoon contexts',
+          headerLeft: () => (
+            <Link href="/settings">
+              <Text style={{ color: theme.primary, fontSize: 16 }}>Settings</Text>
+            </Link>
+          ),
           headerRight: () => (
             <Link href="/contexts/add">
               <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Add</Text>
