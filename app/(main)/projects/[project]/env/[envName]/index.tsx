@@ -1,15 +1,20 @@
-import { useQuery } from '@apollo/client/react';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useMutation, useQuery } from '@apollo/client/react';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useDeploymentEvents } from '@/api/liveUpdates';
+import { useDeploymentEvents, useTaskEvents } from '@/api/liveUpdates';
+import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { DeploymentRow } from '@/components/DeploymentRow';
+import { RunTaskSheet } from '@/components/RunTaskSheet';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { Card, EmptyState } from '@/components/ui';
+import { TaskRow } from '@/components/TaskRow';
+import { Button, Card, EmptyState } from '@/components/ui';
 import {
+  DeployLatestDocument,
   EnvironmentDeploymentsDocument,
   EnvironmentInfoDocument,
+  EnvironmentTasksDocument,
   type EnvironmentInfoQuery,
 } from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
@@ -52,13 +57,37 @@ function DeploymentsTab({
     stopPolling();
   }, [anyActive, startPolling, stopPolling]);
 
+  const [confirmDeploy, setConfirmDeploy] = useState(false);
+  const [deployError, setDeployError] = useState<string | null>(null);
+  const [deployLatest, { loading: deploying }] = useMutation(DeployLatestDocument);
+  const theme = useTheme();
+
+  const environmentId = data?.environmentByName?.id;
+
+  const handleDeploy = async () => {
+    if (!environmentId) return;
+    setDeployError(null);
+    try {
+      await deployLatest({ variables: { environment: environmentId } });
+      setConfirmDeploy(false);
+      void refetch();
+    } catch (e) {
+      setDeployError(e instanceof Error ? e.message : 'Deployment failed to start.');
+    }
+  };
+
   if (error) return <EmptyState title="Could not load deployments" body={error.message} />;
-  if (!loading && deployments.length === 0) {
-    return <EmptyState title="No deployments" body="This environment has not been deployed yet." />;
-  }
 
   return (
     <View style={styles.tabBody}>
+      <Button
+        title="Deploy latest"
+        onPress={() => setConfirmDeploy(true)}
+        disabled={!environmentId}
+      />
+      {deployments.length === 0 && !loading ? (
+        <EmptyState title="No deployments" body="This environment has not been deployed yet." />
+      ) : null}
       {deployments.map((deployment) => (
         <DeploymentRow
           key={deployment.id ?? deployment.name}
@@ -68,6 +97,97 @@ function DeploymentsTab({
           projectId={projectId}
         />
       ))}
+
+      <ConfirmSheet
+        visible={confirmDeploy}
+        title={`Deploy ${envName}?`}
+        message={`Triggers a new build of the latest ${envName} code for ${project}.`}
+        confirmLabel="Deploy latest"
+        busy={deploying}
+        onConfirm={() => void handleDeploy()}
+        onDismiss={() => {
+          setConfirmDeploy(false);
+          setDeployError(null);
+        }}
+      >
+        {deployError ? <Text style={{ color: theme.danger }}>{deployError}</Text> : null}
+      </ConfirmSheet>
+    </View>
+  );
+}
+
+function TasksTab({
+  project,
+  envName,
+  projectId,
+}: {
+  project: string;
+  envName: string;
+  projectId: string;
+}) {
+  const { data, loading, error, refetch, startPolling, stopPolling } = useQuery(
+    EnvironmentTasksDocument,
+    {
+      variables: { name: envName, project: Number(projectId), limit: 25 },
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+  const [showRunTask, setShowRunTask] = useState(false);
+
+  const tasks = (data?.environmentByName?.tasks ?? []).filter(
+    (t): t is NonNullable<typeof t> => Boolean(t),
+  );
+  const anyActive = tasks.some((t) => isActiveStatus(t.status));
+
+  useTaskEvents(data?.environmentByName?.id, () => void refetch());
+
+  useEffect(() => {
+    if (anyActive) {
+      startPolling(ACTIVE_POLL_MS);
+      return () => stopPolling();
+    }
+    stopPolling();
+  }, [anyActive, startPolling, stopPolling]);
+
+  if (error) return <EmptyState title="Could not load tasks" body={error.message} />;
+
+  return (
+    <View style={styles.tabBody}>
+      <Button
+        title="Run task"
+        onPress={() => setShowRunTask(true)}
+        disabled={!data?.environmentByName?.id}
+      />
+      {tasks.length === 0 && !loading ? (
+        <EmptyState title="No tasks" body="No tasks have run in this environment yet." />
+      ) : null}
+      {tasks.map((task) => (
+        <TaskRow
+          key={task.id ?? task.taskName}
+          task={task}
+          project={project}
+          envName={envName}
+          projectId={projectId}
+        />
+      ))}
+
+      <RunTaskSheet
+        visible={showRunTask}
+        onDismiss={() => setShowRunTask(false)}
+        envName={envName}
+        projectId={projectId}
+        environmentId={data?.environmentByName?.id}
+        onStarted={(taskName) => {
+          setShowRunTask(false);
+          void refetch();
+          if (taskName) {
+            router.push({
+              pathname: '/(main)/projects/[project]/env/[envName]/task/[taskName]',
+              params: { project, envName, projectId, taskName },
+            });
+          }
+        }}
+      />
     </View>
   );
 }
@@ -172,7 +292,7 @@ export default function EnvironmentScreen() {
           />
         ) : null}
         {tab === 'Tasks' ? (
-          <EmptyState title="Tasks" body="Task history lands in a later milestone." />
+          <TasksTab project={project ?? ''} envName={envName ?? ''} projectId={projectId ?? ''} />
         ) : null}
       </ScrollView>
     </>

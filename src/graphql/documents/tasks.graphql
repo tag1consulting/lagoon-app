@@ -1,0 +1,114 @@
+query EnvironmentTasks($name: String!, $project: Int!, $limit: Int) {
+  environmentByName(name: $name, project: $project) {
+    id
+    tasks(limit: $limit) {
+      id
+      taskName
+      name
+      status
+      created
+      started
+      completed
+      service
+      sourceUser
+    }
+  }
+}
+
+query EnvironmentAdvancedTasks($name: String!, $project: Int!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    advancedTasks {
+      ... on AdvancedTaskDefinitionCommand {
+        id
+        name
+        description
+        confirmationText
+        advancedTaskDefinitionArguments {
+          id
+          name
+          displayName
+          type
+          defaultValue
+          optional
+          range
+        }
+      }
+      ... on AdvancedTaskDefinitionImage {
+        id
+        name
+        description
+        confirmationText
+        advancedTaskDefinitionArguments {
+          id
+          name
+          displayName
+          type
+          defaultValue
+          optional
+          range
+        }
+      }
+    }
+  }
+}
+
+# Dedicated log query, same rationale as DeploymentWithLog.
+query TaskWithLog($name: String!, $project: Int!, $taskName: String!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    tasks(taskName: $taskName) {
+      id
+      taskName
+      name
+      status
+      created
+      started
+      completed
+      service
+      command
+      sourceUser
+      logs
+    }
+  }
+}
+
+mutation DeployLatest($environment: Int!) {
+  deployEnvironmentLatest(input: { environment: { id: $environment }, returnData: true })
+}
+
+mutation CancelDeployment($deploymentId: Int!) {
+  cancelDeployment(input: { deployment: { id: $deploymentId } })
+}
+
+mutation InvokeRegisteredTask(
+  $advancedTaskDefinition: Int!
+  $environment: Int!
+  $argumentValues: [AdvancedTaskDefinitionArgumentValueInput]
+) {
+  invokeRegisteredTask(
+    advancedTaskDefinition: $advancedTaskDefinition
+    environment: $environment
+    argumentValues: $argumentValues
+  ) {
+    id
+    taskName
+    status
+  }
+}
+
+mutation AddTask($name: String!, $environment: Int!, $service: String!, $command: String!) {
+  addTask(
+    input: {
+      name: $name
+      environment: $environment
+      service: $service
+      command: $command
+      execute: true
+    }
+  ) {
+    id
+    taskName
+    status
+  }
+}

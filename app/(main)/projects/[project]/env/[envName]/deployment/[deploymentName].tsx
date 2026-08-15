@@ -1,16 +1,20 @@
-import { useQuery } from '@apollo/client/react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useDeploymentEvents } from '@/api/liveUpdates';
+import { ConfirmSheet } from '@/components/ConfirmSheet';
 import { durationLabel } from '@/components/DeploymentRow';
 import { LogViewer } from '@/components/LogViewer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/ui';
-import { DeploymentWithLogDocument } from '@/graphql/generated/graphql';
+import {
+  CancelDeploymentDocument,
+  DeploymentWithLogDocument,
+} from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
-import { isActiveStatus } from '@/theme/status';
+import { isActiveStatus, isCancellableStatus } from '@/theme/status';
 
 /** Refetch cadence for status + log while a build is running. */
 const ACTIVE_POLL_MS = 10_000;
@@ -53,6 +57,22 @@ export default function DeploymentScreen() {
     stopPolling();
   }, [running, startPolling, stopPolling]);
 
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelDeployment, { loading: cancelling }] = useMutation(CancelDeploymentDocument);
+
+  const handleCancel = async () => {
+    if (!deployment?.id) return;
+    setCancelError(null);
+    try {
+      await cancelDeployment({ variables: { deploymentId: deployment.id } });
+      setConfirmCancel(false);
+      void refetch();
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : 'Could not cancel the deployment.');
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ title: deploymentName ?? 'Deployment' }} />
@@ -61,7 +81,19 @@ export default function DeploymentScreen() {
         {deployment ? (
           <>
             <View style={styles.header}>
-              <StatusBadge status={deployment.status} />
+              <View style={styles.headerRow}>
+                <StatusBadge status={deployment.status} />
+                {isCancellableStatus(deployment.status) ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setConfirmCancel(true)}
+                  >
+                    <Text style={{ color: theme.danger, fontSize: 13, fontWeight: '600' }}>
+                      Cancel deployment
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
               <Text style={{ color: theme.textMuted, fontSize: 12 }}>
                 {deployment.buildStep ? `Step: ${deployment.buildStep} · ` : ''}
                 {durationLabel(deployment.started, deployment.completed) ?? 'not started'}
@@ -69,6 +101,22 @@ export default function DeploymentScreen() {
               </Text>
             </View>
             <LogViewer log={deployment.buildLog} running={running} />
+
+            <ConfirmSheet
+              visible={confirmCancel}
+              title="Cancel this deployment?"
+              message={`Stops the running build ${deployment.name ?? ''}.`}
+              confirmLabel="Cancel deployment"
+              destructive
+              busy={cancelling}
+              onConfirm={() => void handleCancel()}
+              onDismiss={() => {
+                setConfirmCancel(false);
+                setCancelError(null);
+              }}
+            >
+              {cancelError ? <Text style={{ color: theme.danger }}>{cancelError}</Text> : null}
+            </ConfirmSheet>
           </>
         ) : null}
       </View>
@@ -84,5 +132,10 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: spacing.xs,
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
