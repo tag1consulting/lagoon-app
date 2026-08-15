@@ -32,8 +32,7 @@ export default function Index() {
     return <Redirect href="/contexts/add" />;
   }
 
-  // Placeholder home until the authed (main) group lands: show the switcher.
-  return <Redirect href="/contexts" />;
+  return <Redirect href="/(main)/projects" />;
 }
 
 const styles = StyleSheet.create({
