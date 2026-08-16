@@ -28,9 +28,14 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - run: >
+      # Inputs reach the shell via env vars rather than ${{ }} interpolation,
+      # so nothing from the github context is ever expanded into the script.
+      - env:
+          PLATFORM: ${{ inputs.platform }}
+          PROFILE: ${{ inputs.profile }}
+        run: >
           eas build
           --non-interactive
           --no-wait
-          --platform ${{ inputs.platform }}
-          --profile ${{ inputs.profile }}
+          --platform "$PLATFORM"
+          --profile "$PROFILE"

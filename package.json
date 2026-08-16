@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "codegen": "graphql-codegen --config codegen.ts",
-    "codegen:check": "graphql-codegen --config codegen.ts && git diff --exit-code -- src/graphql/generated"
+    "codegen:check": "graphql-codegen --config codegen.ts && git add -A -- src/graphql/generated && git diff --cached --exit-code -- src/graphql/generated"
   },
   "dependencies": {
     "@apollo/client": "^4.2.12",

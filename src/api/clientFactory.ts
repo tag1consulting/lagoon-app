@@ -46,7 +46,9 @@ export function evictClient(contextId: string): void {
   if (!client) return;
   clients.delete(contextId);
   client.stop();
-  void client.clearStore();
+  client.clearStore().catch((error) => {
+    console.warn(`[apollo] failed to clear cache for context ${contextId}`, error);
+  });
 }
 
 /**

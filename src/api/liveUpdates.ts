@@ -31,8 +31,10 @@ export function useDeploymentEvents(
     variables: { environment: environmentId ?? 0 },
     skip: !environmentId || !active,
     onData: () => onEvent(),
-    onError: () => {
-      /* polling covers this */
+    onError: (error) => {
+      // Non-fatal: polling remains the fallback. Logged so a permanently
+      // blocked WebSocket is visible rather than looking like idleness.
+      console.warn('[liveUpdates] deployment subscription error', error);
     },
   });
 }
@@ -47,8 +49,9 @@ export function useTaskEvents(
     variables: { environment: environmentId ?? 0 },
     skip: !environmentId || !active,
     onData: () => onEvent(),
-    onError: () => {
-      /* polling covers this */
+    onError: (error) => {
+      // Non-fatal: polling remains the fallback. See useDeploymentEvents.
+      console.warn('[liveUpdates] task subscription error', error);
     },
   });
 }

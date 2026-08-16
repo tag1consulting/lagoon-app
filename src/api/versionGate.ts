@@ -45,7 +45,9 @@ export async function refreshLagoonVersion(
       useContextsStore.getState().updateContext(contextId, { lagoonVersion: version });
     }
     return version;
-  } catch {
+  } catch (error) {
+    // Distinguishes "old Lagoon without lagoonVersion" from a failed probe.
+    console.warn(`[versionGate] lagoonVersion probe failed for context ${contextId}`, error);
     return null;
   }
 }
