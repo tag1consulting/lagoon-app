@@ -114,9 +114,15 @@ export async function loginWithOidc(context: LagoonContext): Promise<void> {
       );
     }
 
-    // dismiss/cancel — user closed the browser. An immediate dismissal can
-    // also mean Keycloak refused the redirect before showing a login page.
-    throw new LoginRedirectError('Login was cancelled or the browser closed.', false);
+    // Dismissal is ambiguous: the user may have closed the browser, but
+    // Keycloak also renders its own "Invalid parameter: redirect_uri" page and
+    // never redirects back, which reaches us as a dismissal rather than an
+    // error. Surface the redirect guidance either way — it is the only
+    // actionable hint we can offer, and a genuine cancel simply ignores it.
+    throw new LoginRedirectError(
+      'Login did not complete. If the browser showed "Invalid parameter: redirect_uri", this instance needs the fix below.',
+      true,
+    );
   }
 }
 

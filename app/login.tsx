@@ -1,6 +1,7 @@
+import * as Clipboard from 'expo-clipboard';
 import { Link, Stack, router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   LoginRedirectError,
@@ -8,25 +9,40 @@ import {
   loginWithStaticToken,
 } from '@/auth/authManager';
 import { jwtExpiryMs } from '@/auth/jwt';
+import { redirectUri } from '@/auth/pkce';
 import { Button, Card, EmptyState, Field } from '@/components/ui';
 import { useActiveContext } from '@/contexts/store';
 import { spacing, useTheme } from '@/theme';
 
 function RedirectHelp({ clientId }: { clientId: string }) {
   const theme = useTheme();
+  const copyRedirectUri = async () => {
+    await Clipboard.setStringAsync(redirectUri);
+  };
+
   return (
     <Card>
       <Text style={[styles.helpTitle, { color: theme.text }]}>
         Keycloak may be rejecting this app&apos;s redirect URI
       </Text>
       <Text style={{ color: theme.textMuted, marginTop: spacing.xs }}>
-        An administrator of this Lagoon instance can fix this by either:
-        {'\n\n'}1. Adding {`“lagoonmobile://*”`} to the Valid Redirect URIs of the{' '}
+        This app asks Keycloak to redirect back to:
+      </Text>
+      <Pressable onPress={() => void copyRedirectUri()} accessibilityRole="button">
+        <Text selectable style={[styles.redirectUri, { color: theme.text, borderColor: theme.border }]}>
+          {redirectUri}
+        </Text>
+        <Text style={{ color: theme.primary, fontSize: 12 }}>Tap to copy</Text>
+      </Pressable>
+      <Text style={{ color: theme.textMuted, marginTop: spacing.sm }}>
+        An administrator of this Lagoon instance can allow it by either:
+        {'\n\n'}1. Adding that URI (or {`“lagoonmobile://*”`}) to Valid Redirect URIs on the{' '}
         {`“${clientId}”`} client in the {'“lagoon”'} Keycloak realm, or
-        {'\n\n'}2. Creating a dedicated public client for this app (Standard Flow enabled,
-        redirect URI {`“lagoonmobile://*”`}) and setting its ID in this context&apos;s
+        {'\n\n'}2. Creating a dedicated public client for this app — Standard Flow enabled,
+        Valid Redirect URIs {`“lagoonmobile://*”`} — and setting its ID in this context&apos;s
         settings.
-        {'\n\n'}Alternatively, switch this context to a pasted token in its settings.
+        {'\n\n'}To get going right now without an admin, switch this context to
+        {' “Use a pasted token”'} in its settings.
       </Text>
     </Card>
   );
@@ -140,6 +156,14 @@ const styles = StyleSheet.create({
   helpTitle: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  redirectUri: {
+    borderRadius: 6,
+    borderWidth: 1,
+    fontFamily: 'monospace',
+    fontSize: 13,
+    marginVertical: spacing.xs,
+    padding: spacing.sm,
   },
   footer: {
     flexDirection: 'row',
