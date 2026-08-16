@@ -2,7 +2,10 @@
 # layer — Gradle, autolinking, and the native modules behind expo-secure-store,
 # expo-auth-session and expo-crypto — which Metro bundling cannot verify.
 #
-# Runs on pull requests rather than every push because it costs ~10 minutes.
+# Runs on pull requests rather than every push because it costs ~25 minutes.
+#
+# Actions are referenced by floating major tag rather than pinned SHA, so the
+# mutable-action-tag lint is suppressed per line. See ci.yml for the rationale.
 name: Android build
 
 on:
@@ -21,8 +24,10 @@ jobs:
     # slow runner or a sluggish dependency download.
     timeout-minutes: 45
     steps:
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/checkout@v4
 
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -30,11 +35,13 @@ jobs:
       - run: npm ci
 
       # React Native 0.76+ requires JDK 17.
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: gradle/actions/setup-gradle@v4
 
       # android/ is not committed (continuous native generation), so it is
@@ -46,6 +53,7 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
