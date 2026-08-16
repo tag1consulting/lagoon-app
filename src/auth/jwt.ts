@@ -40,7 +40,8 @@ export function decodeJwtPayload(token: string): Record<string, unknown> | null 
     return payload && typeof payload === 'object' && !Array.isArray(payload)
       ? (payload as Record<string, unknown>)
       : null;
-  } catch {
+  } catch (error) {
+    console.warn('[auth] could not decode JWT payload', error);
     return null;
   }
 }

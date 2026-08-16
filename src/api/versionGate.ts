@@ -47,7 +47,7 @@ export async function refreshLagoonVersion(
     return version;
   } catch (error) {
     // Distinguishes "old Lagoon without lagoonVersion" from a failed probe.
-    console.warn(`[versionGate] lagoonVersion probe failed for context ${contextId}`, error);
+    console.warn('[versionGate] lagoonVersion probe failed for context', contextId, error);
     return null;
   }
 }

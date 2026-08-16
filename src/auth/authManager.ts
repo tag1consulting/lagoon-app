@@ -154,7 +154,7 @@ async function refreshSession(context: LagoonContext): Promise<Session | null> {
     } catch (error) {
       // Re-login is required either way, but the reason (invalid_grant vs a
       // network/discovery failure) matters when diagnosing a login loop.
-      console.warn(`[auth] token refresh failed for context ${context.id}`, error);
+      console.warn('[auth] token refresh failed for context', context.id, error);
       return null;
     }
   })();
