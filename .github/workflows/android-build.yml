@@ -1,0 +1,52 @@
+# Compiles a real debug APK. This is the only check that exercises the native
+# layer — Gradle, autolinking, and the native modules behind expo-secure-store,
+# expo-auth-session and expo-crypto — which Metro bundling cannot verify.
+#
+# Runs on pull requests rather than every push because it costs ~10 minutes.
+name: Android build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# A newer commit supersedes an in-flight build.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # React Native 0.76+ requires JDK 17.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # android/ is not committed (continuous native generation), so it is
+      # generated from app.config.ts on every run.
+      - name: Generate native project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Assemble debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
