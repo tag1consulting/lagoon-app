@@ -16,11 +16,12 @@ npm test -- ansi                  # single suite by filename pattern
 npm test -- -t "single flight"    # single test by name
 npm run codegen                   # regenerate src/graphql/generated from documents
 npm run codegen:check             # CI gate: regenerate and fail if output drifts
+npm run bundle                    # Metro/Hermes export — catches what tsc can't
 ```
 
 `codegen:check` stages `src/graphql/generated` before diffing (so newly generated files count as drift) — running it locally leaves those files in the git index.
 
-CI (`.github/workflows/ci.yml`) runs `codegen:check`, `lint`, `typecheck`, `test` on every push.
+CI (`.github/workflows/ci.yml`) runs `codegen:check`, `lint`, `typecheck`, `test`, `bundle` on every push. `bundle` is the only check that exercises module resolution and the Hermes compiler, so it catches broken imports and unsupported syntax that typecheck passes over. It does **not** verify native modules — only a real Gradle/Xcode build does.
 
 **Running the app requires a development build — Expo Go will not work**, because the OAuth flow uses the `lagoonmobile://` custom scheme. Use `npm run android` (needs a local Android SDK) or `eas build --profile development`. Once a dev client is installed, `npm start` is enough for iteration.
 

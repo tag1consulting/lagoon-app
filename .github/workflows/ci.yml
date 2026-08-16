@@ -19,3 +19,6 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --ci
+      # Bundling is a distinct failure class from lint/typecheck: it catches
+      # unresolvable imports and anything the Hermes compiler rejects.
+      - run: npm run bundle
