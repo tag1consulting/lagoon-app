@@ -40,6 +40,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The review container looks for node_modules/.bin/eslint and skips the
+      # eslint analyzer when it is absent, so install dependencies first.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
       - name: Run AI review
         uses: tag1consulting/ai-pr-review/container-action@main
         env:
