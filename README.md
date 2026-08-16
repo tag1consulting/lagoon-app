@@ -52,9 +52,19 @@ iOS: `eas build --profile preview --platform ios` once Apple credentials are con
 
 A manual GitHub Actions workflow (`EAS Build`) triggers cloud builds; it needs an `EXPO_TOKEN` repository secret (create one at https://expo.dev/settings/access-tokens).
 
+## Installing a build on a phone
+
+The **Android build** workflow runs on every pull request and attaches an `app-release-apk` artifact. Download it from the workflow run page, unzip, transfer `app-release.apk` to the phone, and install it (Android will ask you to allow installs from that source).
+
+That APK is standalone — the JS bundle is embedded, so it launches straight into the app.
+
+> A **debug** APK behaves differently: because `expo-dev-client` is installed, it boots a "Development Build" launcher asking for a dev server URL, and needs `npx expo start` running on the same network. Use the release artifact unless you specifically want live reload.
+
 ## Connecting to a Lagoon instance
 
-Add a context in-app with a name and the instance's GraphQL endpoint (e.g. `https://api.example.com/graphql`). Keycloak and UI URLs are derived (`keycloak.<host>`, `ui.<host>`) but editable.
+On first launch the app goes straight to **Add context**. Give it a name (e.g. `SBS`) and the instance's GraphQL endpoint (e.g. `https://api.example.com/graphql` — a bare host works too, `/graphql` is appended). Keycloak and UI URLs are derived as `keycloak.<host>` and `ui.<host>`, both editable if the instance differs. Save, then sign in.
+
+Add more contexts from the same screen; the header shows the current one and taps through to switch.
 
 OIDC login uses the instance's Keycloak `lagoon` realm with the `lagoon-ui` public client by default. If the instance pins that client's redirect URIs, an admin must either:
 

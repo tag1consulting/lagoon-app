@@ -1,6 +1,12 @@
-# Compiles a real debug APK. This is the only check that exercises the native
-# layer — Gradle, autolinking, and the native modules behind expo-secure-store,
+# Compiles a real APK. This is the only check that exercises the native layer —
+# Gradle, autolinking, and the native modules behind expo-secure-store,
 # expo-auth-session and expo-crypto — which Metro bundling cannot verify.
+#
+# Release rather than debug: a debug build with expo-dev-client boots the dev
+# launcher and needs a Metro server, whereas release embeds the JS bundle and
+# runs standalone, so the artifact can be sideloaded and used directly. The
+# Expo template signs release with the debug keystore, so no secrets are
+# needed — fine for internal testing, not for Play Store distribution.
 #
 # Runs on pull requests rather than every push because it costs ~25 minutes.
 #
@@ -49,14 +55,14 @@ jobs:
       - name: Generate native project
         run: npx expo prebuild --platform android --no-install
 
-      - name: Assemble debug APK
+      - name: Assemble release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
