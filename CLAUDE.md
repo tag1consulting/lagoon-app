@@ -18,6 +18,8 @@ npm run codegen                   # regenerate src/graphql/generated from docume
 npm run codegen:check             # CI gate: regenerate and fail if output drifts
 ```
 
+`codegen:check` stages `src/graphql/generated` before diffing (so newly generated files count as drift) — running it locally leaves those files in the git index.
+
 CI (`.github/workflows/ci.yml`) runs `codegen:check`, `lint`, `typecheck`, `test` on every push.
 
 **Running the app requires a development build — Expo Go will not work**, because the OAuth flow uses the `lagoonmobile://` custom scheme. Use `npm run android` (needs a local Android SDK) or `eas build --profile development`. Once a dev client is installed, `npm start` is enough for iteration.
@@ -62,6 +64,12 @@ Two rules that shape most of the deployment/task code:
 2. **Logs are fetched, not streamed.** `Deployment.buildLog` and `Task.logs` are plain String fields that can reach multiple MB, so they live in *dedicated* queries (`DeploymentWithLog`, `TaskWithLog`) and must never be selected in list queries. Subscription payloads carry status only; a status change triggers a log refetch.
 
 `src/components/LogViewer/` handles the size: `useLogLines.ts` tokenizes in 2k-line slices off the interaction path, rendering is windowed to the newest 10k lines via FlashList with chat-style stick-to-bottom, and `src/utils/ansi.ts` is a hand-rolled SGR tokenizer (colors/bold; everything else stripped) that carries color state across lines.
+
+### Implemented scope
+
+V1 is deliberately "monitor + operate": browse projects/environments, watch deployments and tasks with logs, `deployEnvironmentLatest`, `cancelDeployment`, `invokeRegisteredTask`, and raw `addTask`. `src/graphql/documents/` is the complete list of operations the app issues.
+
+Large parts of the Lagoon API are intentionally unused so far — backups/restores, environment variable management, insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, and all organization/user/group administration. The vendored schema already covers them, so adding one is a matter of writing the document and screen; check `versionGate.ts` first for anything added after Lagoon 2.27.
 
 ### Runtime gotcha
 
