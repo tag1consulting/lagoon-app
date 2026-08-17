@@ -30,9 +30,6 @@ query EnvironmentInfo($name: String!, $project: Int!) {
     services {
       id
       name
-      type
-      replicas
-      updated
     }
     facts(keyFacts: true, limit: 100) {
       id

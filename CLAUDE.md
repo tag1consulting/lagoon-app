@@ -84,6 +84,15 @@ Until an instance is fixed, `authMode: 'static-token'` is the working path.
 
 Keep field selections conservative so older Lagoon instances keep working. Newer API surface goes behind `src/api/versionGate.ts`, which semver-checks the instance's cached `lagoonVersion` and **fails closed** on unknown versions.
 
+**Documents are pinned to the Lagoon 2.8 API surface**, because the primary target instance (SBS) runs 2.8.0 and GraphQL rejects the *whole* query on one unknown field — a single newer field silently breaks an entire screen. The vendored schema is from `main`, so it will happily validate fields 2.8 does not have. Before shipping a new document, validate it against an old schema too:
+
+```bash
+curl -sSL -o /tmp/td.js https://raw.githubusercontent.com/uselagoon/lagoon/v2.8.0/services/api/src/typeDefs.js
+# extract the gql`...` template, buildSchema(), then validate() every file in src/graphql/documents
+```
+
+Fields deliberately **not** selected because 2.8 lacks them: `Deployment.buildStep`/`buildType`/`sourceUser`, `Task.sourceUser`, `EnvironmentService.type`/`replicas`/`updated`, `AdvancedTaskDefinitionArgument.defaultValue`/`optional`. Re-adding any of them means a version-gated second document variant, not just editing the existing one (`@include` will not help — the server validates the field's existence regardless of the directive).
+
 ### Live updates and logs
 
 Two rules that shape most of the deployment/task code:

@@ -75,12 +75,10 @@ export function RunTaskSheet({
 
   const runRegistered = async () => {
     if (!selected?.id || !environmentId) return;
+    // `optional` and `defaultValue` are not queryable on older Lagoon
+    // instances, so required-ness cannot be checked client-side — send what
+    // the user supplied and let the API reject anything it needs.
     const args = taskArguments(selected);
-    const missing = args.filter((a) => !a.optional && !(argValues[a.name ?? ''] ?? a.defaultValue));
-    if (missing.length > 0) {
-      setError(`Missing required argument: ${missing[0].displayName ?? missing[0].name}`);
-      return;
-    }
     setError(null);
     try {
       const result = await invokeTask({
@@ -90,7 +88,7 @@ export function RunTaskSheet({
           argumentValues: args
             .map((a) => ({
               advancedTaskDefinitionArgumentName: a.name,
-              value: argValues[a.name ?? ''] ?? a.defaultValue ?? '',
+              value: argValues[a.name ?? ''] ?? '',
             }))
             .filter((a) => a.value !== ''),
         },
@@ -176,9 +174,8 @@ export function RunTaskSheet({
                 {taskArguments(selected).map((arg) => (
                   <Field
                     key={arg.id ?? arg.name}
-                    label={`${arg.displayName ?? arg.name}${arg.optional ? ' (optional)' : ''}`}
+                    label={arg.displayName ?? arg.name ?? ''}
                     hint={arg.range?.length ? `One of: ${arg.range.join(', ')}` : undefined}
-                    placeholder={arg.defaultValue ?? ''}
                     value={argValues[arg.name ?? ''] ?? ''}
                     onChangeText={(v) => setArgValues((prev) => ({ ...prev, [arg.name ?? '']: v }))}
                   />

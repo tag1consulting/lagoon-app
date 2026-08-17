@@ -237,8 +237,7 @@ function InfoTab({ env }: { env: EnvInfo }) {
           <Text style={[styles.cardTitle, { color: theme.text }]}>Services</Text>
           {services.map((service) => (
             <Text key={service?.id ?? service?.name} style={{ color: theme.textMuted, fontSize: 13 }}>
-              {service?.name} ({service?.type}
-              {service?.replicas != null ? ` ×${service.replicas}` : ''})
+              {service?.name}
             </Text>
           ))}
         </Card>

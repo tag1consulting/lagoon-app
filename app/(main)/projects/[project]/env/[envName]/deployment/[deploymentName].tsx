@@ -95,9 +95,7 @@ export default function DeploymentScreen() {
                 ) : null}
               </View>
               <Text style={{ color: theme.textMuted, fontSize: 12 }}>
-                {deployment.buildStep ? `Step: ${deployment.buildStep} · ` : ''}
                 {durationLabel(deployment.started, deployment.completed) ?? 'not started'}
-                {deployment.sourceUser ? ` · by ${deployment.sourceUser}` : ''}
               </Text>
             </View>
             <LogViewer log={deployment.buildLog} running={running} />

@@ -8,9 +8,6 @@ query EnvironmentDeployments($name: String!, $project: Int!, $limit: Int) {
       created
       started
       completed
-      buildStep
-      buildType
-      sourceUser
       priority
     }
   }
@@ -28,9 +25,6 @@ query DeploymentWithLog($name: String!, $project: Int!, $deploymentName: String!
       created
       started
       completed
-      buildStep
-      buildType
-      sourceUser
       buildLog
     }
   }

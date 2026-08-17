@@ -55,7 +55,6 @@ export default function TaskScreen() {
               <Text style={{ color: theme.textMuted, fontSize: 12 }}>
                 {task.service ? `Service: ${task.service} · ` : ''}
                 {durationLabel(task.started, task.completed) ?? 'not started'}
-                {task.sourceUser ? ` · by ${task.sourceUser}` : ''}
               </Text>
               {task.command ? (
                 <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={2}>

@@ -10,7 +10,6 @@ query EnvironmentTasks($name: String!, $project: Int!, $limit: Int) {
       started
       completed
       service
-      sourceUser
     }
   }
 }
@@ -29,8 +28,6 @@ query EnvironmentAdvancedTasks($name: String!, $project: Int!) {
           name
           displayName
           type
-          defaultValue
-          optional
           range
         }
       }
@@ -44,8 +41,6 @@ query EnvironmentAdvancedTasks($name: String!, $project: Int!) {
           name
           displayName
           type
-          defaultValue
-          optional
           range
         }
       }
@@ -67,7 +62,6 @@ query TaskWithLog($name: String!, $project: Int!, $taskName: String!) {
       completed
       service
       command
-      sourceUser
       logs
     }
   }

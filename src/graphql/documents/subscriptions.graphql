@@ -5,7 +5,6 @@ subscription DeploymentChanged($environment: Int!) {
     id
     name
     status
-    buildStep
     started
     completed
   }
