@@ -1,3 +1,6 @@
+# Actions are referenced by floating major tag rather than pinned SHA, so the
+# mutable-action-tag lint is suppressed per line. Revisit if this repo adopts
+# SHA pinning (which needs Dependabot to keep the pins current).
 name: CI
 
 on:
@@ -9,12 +12,20 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/checkout@v4
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run codegen:check
+      # Fails if an ungated operation names a field Lagoon 2.8 does not have.
+      - run: npm run compat:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --ci
+      # Bundling is a distinct failure class from lint/typecheck: it catches
+      # unresolvable imports and anything the Hermes compiler rejects.
+      - run: npm run bundle

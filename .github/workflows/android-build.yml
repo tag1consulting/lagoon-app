@@ -1,0 +1,68 @@
+# Compiles a real APK. This is the only check that exercises the native layer —
+# Gradle, autolinking, and the native modules behind expo-secure-store,
+# expo-auth-session and expo-crypto — which Metro bundling cannot verify.
+#
+# Release rather than debug: a debug build with expo-dev-client boots the dev
+# launcher and needs a Metro server, whereas release embeds the JS bundle and
+# runs standalone, so the artifact can be sideloaded and used directly. The
+# Expo template signs release with the debug keystore, so no secrets are
+# needed — fine for internal testing, not for Play Store distribution.
+#
+# Runs on pull requests rather than every push because it costs ~25 minutes.
+#
+# Actions are referenced by floating major tag rather than pinned SHA, so the
+# mutable-action-tag lint is suppressed per line. See ci.yml for the rationale.
+name: Android build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# A newer commit supersedes an in-flight build.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    # A cold-cache build measured 25m41s, so 30 left too little headroom for a
+    # slow runner or a sluggish dependency download.
+    timeout-minutes: 45
+    steps:
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/checkout@v4
+
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # React Native 0.76+ requires JDK 17.
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: gradle/actions/setup-gradle@v4
+
+      # android/ is not committed (continuous native generation), so it is
+      # generated from app.config.ts on every run.
+      - name: Generate native project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Assemble release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
