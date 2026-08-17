@@ -21,6 +21,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run codegen:check
+      # Fails if an ungated operation names a field Lagoon 2.8 does not have.
+      - run: npm run compat:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test -- --ci

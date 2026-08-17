@@ -4,16 +4,21 @@ import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useDeploymentEvents, useTaskEvents } from '@/api/liveUpdates';
+import { hasFeature } from '@/api/versionGate';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
-import { DeploymentRow } from '@/components/DeploymentRow';
+import { DeploymentRow, type DeploymentSummary } from '@/components/DeploymentRow';
 import { RunTaskSheet } from '@/components/RunTaskSheet';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { TaskRow } from '@/components/TaskRow';
+import { TaskRow, type TaskSummary } from '@/components/TaskRow';
 import { Button, Card, EmptyState } from '@/components/ui';
+import { useActiveContext } from '@/contexts/store';
 import {
   DeployLatestDocument,
+  EnvironmentDeploymentsDetailedDocument,
   EnvironmentDeploymentsDocument,
+  EnvironmentInfoDetailedDocument,
   EnvironmentInfoDocument,
+  EnvironmentTasksDetailedDocument,
   EnvironmentTasksDocument,
   type EnvironmentInfoQuery,
 } from '@/graphql/generated/graphql';
@@ -32,17 +37,21 @@ function DeploymentsTab({
   envName: string;
   projectId: string;
 }) {
+  const context = useActiveContext();
   const { data, loading, error, refetch, startPolling, stopPolling } = useQuery(
-    EnvironmentDeploymentsDocument,
+    hasFeature(context ?? {}, 'deploymentDetails')
+      ? EnvironmentDeploymentsDetailedDocument
+      : EnvironmentDeploymentsDocument,
     {
       variables: { name: envName, project: Number(projectId), limit: 25 },
       fetchPolicy: 'cache-and-network',
     },
   );
 
-  const deployments = (data?.environmentByName?.deployments ?? []).filter(
-    (d): d is NonNullable<typeof d> => Boolean(d),
-  );
+  // The gated variant is a superset, so the row's optional fields absorb the
+  // difference — they are simply absent on older instances.
+  const deployments = ((data?.environmentByName?.deployments ?? []) as (DeploymentSummary | null)[])
+    .filter((d): d is DeploymentSummary => Boolean(d));
   const anyActive = deployments.some((d) => isActiveStatus(d.status));
 
   // Push-based updates when the instance supports subscriptions; the poll
@@ -125,8 +134,11 @@ function TasksTab({
   envName: string;
   projectId: string;
 }) {
+  const context = useActiveContext();
   const { data, loading, error, refetch, startPolling, stopPolling } = useQuery(
-    EnvironmentTasksDocument,
+    hasFeature(context ?? {}, 'taskDetails')
+      ? EnvironmentTasksDetailedDocument
+      : EnvironmentTasksDocument,
     {
       variables: { name: envName, project: Number(projectId), limit: 25 },
       fetchPolicy: 'cache-and-network',
@@ -134,8 +146,8 @@ function TasksTab({
   );
   const [showRunTask, setShowRunTask] = useState(false);
 
-  const tasks = (data?.environmentByName?.tasks ?? []).filter(
-    (t): t is NonNullable<typeof t> => Boolean(t),
+  const tasks = ((data?.environmentByName?.tasks ?? []) as (TaskSummary | null)[]).filter(
+    (t): t is TaskSummary => Boolean(t),
   );
   const anyActive = tasks.some((t) => isActiveStatus(t.status));
 
@@ -195,7 +207,13 @@ function TasksTab({
 const TABS = ['Deployments', 'Tasks', 'Info'] as const;
 type Tab = (typeof TABS)[number];
 
-type EnvInfo = NonNullable<EnvironmentInfoQuery['environmentByName']>;
+/**
+ * Base shape plus the fields the gated variant adds — services carry `type`
+ * only on instances new enough to expose it.
+ */
+type EnvInfo = Omit<NonNullable<EnvironmentInfoQuery['environmentByName']>, 'services'> & {
+  services?: ({ id?: number | null; name?: string | null; type?: string | null } | null)[] | null;
+};
 
 function InfoTab({ env }: { env: EnvInfo }) {
   const theme = useTheme();
@@ -238,6 +256,7 @@ function InfoTab({ env }: { env: EnvInfo }) {
           {services.map((service) => (
             <Text key={service?.id ?? service?.name} style={{ color: theme.textMuted, fontSize: 13 }}>
               {service?.name}
+              {service?.type ? ` (${service.type})` : ''}
             </Text>
           ))}
         </Card>
@@ -266,10 +285,16 @@ export default function EnvironmentScreen() {
   }>();
   const [tab, setTab] = useState<Tab>('Deployments');
 
-  const { data, loading, error, refetch } = useQuery(EnvironmentInfoDocument, {
-    variables: { name: envName ?? '', project: Number(projectId) },
-    skip: !envName || !projectId,
-  });
+  const context = useActiveContext();
+  const { data, loading, error, refetch } = useQuery(
+    hasFeature(context ?? {}, 'serviceDetails')
+      ? EnvironmentInfoDetailedDocument
+      : EnvironmentInfoDocument,
+    {
+      variables: { name: envName ?? '', project: Number(projectId) },
+      skip: !envName || !projectId,
+    },
+  );
 
   const env = data?.environmentByName;
 

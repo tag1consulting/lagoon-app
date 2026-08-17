@@ -16,6 +16,7 @@ npm test -- ansi                  # single suite by filename pattern
 npm test -- -t "single flight"    # single test by name
 npm run codegen                   # regenerate src/graphql/generated from documents
 npm run codegen:check             # CI gate: regenerate and fail if output drifts
+npm run compat:check              # CI gate: ungated operations must work on Lagoon 2.8
 npm run bundle                    # Metro/Hermes export — catches what tsc can't
 ```
 
@@ -84,14 +85,23 @@ Until an instance is fixed, `authMode: 'static-token'` is the working path.
 
 Keep field selections conservative so older Lagoon instances keep working. Newer API surface goes behind `src/api/versionGate.ts`, which semver-checks the instance's cached `lagoonVersion` and **fails closed** on unknown versions.
 
-**Documents are pinned to the Lagoon 2.8 API surface**, because the primary target instance (SBS) runs 2.8.0 and GraphQL rejects the *whole* query on one unknown field — a single newer field silently breaks an entire screen. The vendored schema is from `main`, so it will happily validate fields 2.8 does not have. Before shipping a new document, validate it against an old schema too:
+#### The 2.8 floor and version-gated variants
 
-```bash
-curl -sSL -o /tmp/td.js https://raw.githubusercontent.com/uselagoon/lagoon/v2.8.0/services/api/src/typeDefs.js
-# extract the gql`...` template, buildSchema(), then validate() every file in src/graphql/documents
+Lagoon rejects the *whole* query when it names one unknown field, so a newer field does not degrade — it blanks a screen. The primary target instance (SBS) runs **2.8.0**, which is the floor.
+
+Two schemas are vendored: `graphql/schema.graphql` (from `main`, drives codegen) and `graphql/schema-2.8.graphql` (the floor). `npm run compat:check` — wired into CI — validates every operation against the floor, **except** operations whose name ends in `Detailed`, which are checked against the current schema instead.
+
+So each query needing newer fields exists twice: a base operation valid on 2.8, and a `...Detailed` twin. Consumers pick with `hasFeature(context, …)`:
+
+```ts
+useQuery(hasFeature(context ?? {}, 'deploymentDetails')
+  ? EnvironmentDeploymentsDetailedDocument
+  : EnvironmentDeploymentsDocument, …)
 ```
 
-Fields deliberately **not** selected because 2.8 lacks them: `Deployment.buildStep`/`buildType`/`sourceUser`, `Task.sourceUser`, `EnvironmentService.type`/`replicas`/`updated`, `AdvancedTaskDefinitionArgument.defaultValue`/`optional`. Re-adding any of them means a version-gated second document variant, not just editing the existing one (`@include` will not help — the server validates the field's existence regardless of the directive).
+The extra fields are modelled as optional on the consuming types (`DeploymentSummary`, `TaskSummary`, `TaskArgument`), so one cast at the query boundary absorbs the difference and the UI simply omits absent values. `@include`/`@skip` cannot substitute for this — the server validates a field's existence regardless of the directive.
+
+Feature thresholds in `versionGate.ts` were measured by validating against `typeDefs.js` at tagged releases (2.8 → 2.33). Sampling was coarse, so they are safe **upper bounds**; erring high costs cosmetic detail on a narrow band, erring low breaks the query. Currently unused because they need very new instances: `Deployment.buildType` (≥2.30) and `EnvironmentService.replicas` (≥2.33).
 
 ### Live updates and logs
 

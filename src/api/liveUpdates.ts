@@ -2,7 +2,10 @@ import { useSubscription } from '@apollo/client/react';
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { hasFeature } from '@/api/versionGate';
+import { useActiveContext } from '@/contexts/store';
 import {
+  DeploymentChangedDetailedDocument,
   DeploymentChangedDocument,
   TaskChangedDocument,
 } from '@/graphql/generated/graphql';
@@ -27,16 +30,22 @@ export function useDeploymentEvents(
   onEvent: () => void,
 ): void {
   const active = useAppStateActive();
-  useSubscription(DeploymentChangedDocument, {
-    variables: { environment: environmentId ?? 0 },
-    skip: !environmentId || !active,
-    onData: () => onEvent(),
-    onError: (error) => {
-      // Non-fatal: polling remains the fallback. Logged so a permanently
-      // blocked WebSocket is visible rather than looking like idleness.
-      console.warn('[liveUpdates] deployment subscription error', error);
+  const context = useActiveContext();
+  useSubscription(
+    hasFeature(context ?? {}, 'deploymentDetails')
+      ? DeploymentChangedDetailedDocument
+      : DeploymentChangedDocument,
+    {
+      variables: { environment: environmentId ?? 0 },
+      skip: !environmentId || !active,
+      onData: () => onEvent(),
+      onError: (error) => {
+        // Non-fatal: polling remains the fallback. Logged so a permanently
+        // blocked WebSocket is visible rather than looking like idleness.
+        console.warn('[liveUpdates] deployment subscription error', error);
+      },
     },
-  });
+  );
 }
 
 /** Live task-status events for an environment; same contract as deployments. */

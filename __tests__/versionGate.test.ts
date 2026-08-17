@@ -17,4 +17,39 @@ describe('hasFeature', () => {
     expect(hasFeature({ lagoonVersion: undefined }, 'idleState')).toBe(false);
     expect(hasFeature({ lagoonVersion: 'unknown' }, 'idleState')).toBe(false);
   });
+
+  describe('document-variant gates', () => {
+    // SBS runs 2.8.0 and must never be sent a post-2.8 field: Lagoon rejects
+    // the whole query, so a false positive here blanks an entire screen.
+    const documentFeatures = [
+      'deploymentDetails',
+      'taskDetails',
+      'serviceDetails',
+      'taskArgumentMetadata',
+    ] as const;
+
+    it.each(documentFeatures)('is closed for %s on Lagoon 2.8.0', (feature) => {
+      expect(hasFeature({ lagoonVersion: '2.8.0' }, feature)).toBe(false);
+    });
+
+    it.each(documentFeatures)('is closed for %s when the version is unknown', (feature) => {
+      expect(hasFeature({}, feature)).toBe(false);
+    });
+
+    it.each(documentFeatures)('is open for %s on 2.18.0 and later', (feature) => {
+      expect(hasFeature({ lagoonVersion: '2.18.0' }, feature)).toBe(true);
+      expect(hasFeature({ lagoonVersion: '2.33.0' }, feature)).toBe(true);
+    });
+
+    it('stays closed just below the threshold', () => {
+      expect(hasFeature({ lagoonVersion: '2.17.9' }, 'deploymentDetails')).toBe(false);
+    });
+  });
+
+  it('gates fields measured as newer than the shared 2.18 threshold', () => {
+    expect(hasFeature({ lagoonVersion: '2.18.0' }, 'deploymentBuildType')).toBe(false);
+    expect(hasFeature({ lagoonVersion: '2.30.0' }, 'deploymentBuildType')).toBe(true);
+    expect(hasFeature({ lagoonVersion: '2.30.0' }, 'serviceReplicas')).toBe(false);
+    expect(hasFeature({ lagoonVersion: '2.33.0' }, 'serviceReplicas')).toBe(true);
+  });
 });

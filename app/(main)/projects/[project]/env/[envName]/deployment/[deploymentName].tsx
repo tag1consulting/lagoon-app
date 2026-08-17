@@ -5,12 +5,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useDeploymentEvents } from '@/api/liveUpdates';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
-import { durationLabel } from '@/components/DeploymentRow';
+import { durationLabel, type DeploymentSummary } from '@/components/DeploymentRow';
 import { LogViewer } from '@/components/LogViewer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/ui';
+import { hasFeature } from '@/api/versionGate';
+import { useActiveContext } from '@/contexts/store';
 import {
   CancelDeploymentDocument,
+  DeploymentWithLogDetailedDocument,
   DeploymentWithLogDocument,
 } from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
@@ -28,20 +31,25 @@ export default function DeploymentScreen() {
     deploymentName: string;
   }>();
 
-  const { data, error, refetch, startPolling, stopPolling } = useQuery(DeploymentWithLogDocument, {
-    variables: {
-      name: envName ?? '',
-      project: Number(projectId),
-      deploymentName: deploymentName ?? '',
+  const context = useActiveContext();
+  const { data, error, refetch, startPolling, stopPolling } = useQuery(
+    hasFeature(context ?? {}, 'deploymentDetails')
+      ? DeploymentWithLogDetailedDocument
+      : DeploymentWithLogDocument,
+    {
+      variables: {
+        name: envName ?? '',
+        project: Number(projectId),
+        deploymentName: deploymentName ?? '',
+      },
+      skip: !envName || !projectId || !deploymentName,
+      fetchPolicy: 'cache-and-network',
+      nextFetchPolicy: 'network-only',
     },
-    skip: !envName || !projectId || !deploymentName,
-    fetchPolicy: 'cache-and-network',
-    nextFetchPolicy: 'network-only',
-  });
-
-  const deployment = data?.environmentByName?.deployments?.find(
-    (d) => d?.name === deploymentName,
   );
+
+  const deployment: DeploymentSummary & { buildLog?: string | null } | undefined =
+    data?.environmentByName?.deployments?.find((d) => d?.name === deploymentName) ?? undefined;
   const running = isActiveStatus(deployment?.status);
 
   // Status pushes trigger a log refetch (subscription payloads carry no log);
@@ -95,7 +103,9 @@ export default function DeploymentScreen() {
                 ) : null}
               </View>
               <Text style={{ color: theme.textMuted, fontSize: 12 }}>
+                {deployment.buildStep ? `Step: ${deployment.buildStep} · ` : ''}
                 {durationLabel(deployment.started, deployment.completed) ?? 'not started'}
+                {deployment.sourceUser ? ` · by ${deployment.sourceUser}` : ''}
               </Text>
             </View>
             <LogViewer log={deployment.buildLog} running={running} />

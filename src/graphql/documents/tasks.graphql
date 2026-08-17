@@ -106,3 +106,79 @@ mutation AddTask($name: String!, $environment: Int!, $service: String!, $command
     status
   }
 }
+
+# --- Version-gated variants -------------------------------------------------
+
+query EnvironmentTasksDetailed($name: String!, $project: Int!, $limit: Int) {
+  environmentByName(name: $name, project: $project) {
+    id
+    tasks(limit: $limit) {
+      id
+      taskName
+      name
+      status
+      created
+      started
+      completed
+      service
+      sourceUser
+    }
+  }
+}
+
+query TaskWithLogDetailed($name: String!, $project: Int!, $taskName: String!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    tasks(taskName: $taskName) {
+      id
+      taskName
+      name
+      status
+      created
+      started
+      completed
+      service
+      command
+      logs
+      sourceUser
+    }
+  }
+}
+
+query EnvironmentAdvancedTasksDetailed($name: String!, $project: Int!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    advancedTasks {
+      ... on AdvancedTaskDefinitionCommand {
+        id
+        name
+        description
+        confirmationText
+        advancedTaskDefinitionArguments {
+          id
+          name
+          displayName
+          type
+          range
+          defaultValue
+          optional
+        }
+      }
+      ... on AdvancedTaskDefinitionImage {
+        id
+        name
+        description
+        confirmationText
+        advancedTaskDefinitionArguments {
+          id
+          name
+          displayName
+          type
+          range
+          defaultValue
+          optional
+        }
+      }
+    }
+  }
+}

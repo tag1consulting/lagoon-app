@@ -29,3 +29,41 @@ query DeploymentWithLog($name: String!, $project: Int!, $deploymentName: String!
     }
   }
 }
+
+# --- Version-gated variants -------------------------------------------------
+# Same shape plus fields absent from Lagoon 2.8. Selected via
+# hasFeature(context, 'deploymentDetails'); see src/api/versionGate.ts.
+
+query EnvironmentDeploymentsDetailed($name: String!, $project: Int!, $limit: Int) {
+  environmentByName(name: $name, project: $project) {
+    id
+    deployments(limit: $limit) {
+      id
+      name
+      status
+      created
+      started
+      completed
+      priority
+      buildStep
+      sourceUser
+    }
+  }
+}
+
+query DeploymentWithLogDetailed($name: String!, $project: Int!, $deploymentName: String!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    deployments(name: $deploymentName) {
+      id
+      name
+      status
+      created
+      started
+      completed
+      buildLog
+      buildStep
+      sourceUser
+    }
+  }
+}

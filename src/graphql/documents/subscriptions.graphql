@@ -19,3 +19,16 @@ subscription TaskChanged($environment: Int!) {
     completed
   }
 }
+
+# --- Version-gated variant --------------------------------------------------
+
+subscription DeploymentChangedDetailed($environment: Int!) {
+  deploymentChanged(environment: $environment) {
+    id
+    name
+    status
+    started
+    completed
+    buildStep
+  }
+}

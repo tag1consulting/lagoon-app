@@ -5,10 +5,13 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useTaskEvents } from '@/api/liveUpdates';
 import { durationLabel } from '@/components/DeploymentRow';
+import type { TaskSummary } from '@/components/TaskRow';
 import { LogViewer } from '@/components/LogViewer';
 import { StatusBadge } from '@/components/StatusBadge';
 import { EmptyState } from '@/components/ui';
-import { TaskWithLogDocument } from '@/graphql/generated/graphql';
+import { hasFeature } from '@/api/versionGate';
+import { useActiveContext } from '@/contexts/store';
+import { TaskWithLogDetailedDocument, TaskWithLogDocument } from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
 import { isActiveStatus } from '@/theme/status';
 
@@ -23,14 +26,19 @@ export default function TaskScreen() {
     taskName: string;
   }>();
 
-  const { data, error, refetch, startPolling, stopPolling } = useQuery(TaskWithLogDocument, {
-    variables: { name: envName ?? '', project: Number(projectId), taskName: taskName ?? '' },
-    skip: !envName || !projectId || !taskName,
-    fetchPolicy: 'cache-and-network',
-    nextFetchPolicy: 'network-only',
-  });
+  const context = useActiveContext();
+  const { data, error, refetch, startPolling, stopPolling } = useQuery(
+    hasFeature(context ?? {}, 'taskDetails') ? TaskWithLogDetailedDocument : TaskWithLogDocument,
+    {
+      variables: { name: envName ?? '', project: Number(projectId), taskName: taskName ?? '' },
+      skip: !envName || !projectId || !taskName,
+      fetchPolicy: 'cache-and-network',
+      nextFetchPolicy: 'network-only',
+    },
+  );
 
-  const task = data?.environmentByName?.tasks?.find((t) => t?.taskName === taskName);
+  const task: (TaskSummary & { command?: string | null; logs?: string | null }) | undefined =
+    data?.environmentByName?.tasks?.find((t) => t?.taskName === taskName) ?? undefined;
   const running = isActiveStatus(task?.status);
 
   useTaskEvents(data?.environmentByName?.id, () => void refetch());
@@ -55,6 +63,7 @@ export default function TaskScreen() {
               <Text style={{ color: theme.textMuted, fontSize: 12 }}>
                 {task.service ? `Service: ${task.service} · ` : ''}
                 {durationLabel(task.started, task.completed) ?? 'not started'}
+                {task.sourceUser ? ` · by ${task.sourceUser}` : ''}
               </Text>
               {task.command ? (
                 <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={2}>

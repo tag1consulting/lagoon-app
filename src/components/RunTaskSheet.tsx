@@ -3,24 +3,39 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { Button, Field } from '@/components/ui';
+import { hasFeature } from '@/api/versionGate';
+import { useActiveContext } from '@/contexts/store';
 import {
   AddTaskDocument,
+  EnvironmentAdvancedTasksDetailedDocument,
   EnvironmentAdvancedTasksDocument,
   InvokeRegisteredTaskDocument,
   type EnvironmentAdvancedTasksQuery,
 } from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
 
-type AdvancedTask = NonNullable<
-  NonNullable<
-    NonNullable<EnvironmentAdvancedTasksQuery['environmentByName']>['advancedTasks']
-  >[number]
->;
+type TaskArgument = {
+  id?: number | null;
+  name?: string | null;
+  displayName?: string | null;
+  type?: string | null;
+  range?: (string | null)[] | null;
+  /** Only queryable on instances with the taskArgumentMetadata feature. */
+  defaultValue?: string | null;
+  optional?: boolean | null;
+};
 
-function taskArguments(task: AdvancedTask) {
-  return (task.advancedTaskDefinitionArguments ?? []).filter(
-    (a): a is NonNullable<typeof a> => Boolean(a),
-  );
+type AdvancedTask = Omit<
+  NonNullable<
+    NonNullable<
+      NonNullable<EnvironmentAdvancedTasksQuery['environmentByName']>['advancedTasks']
+    >[number]
+  >,
+  'advancedTaskDefinitionArguments'
+> & { advancedTaskDefinitionArguments?: (TaskArgument | null)[] | null };
+
+function taskArguments(task: AdvancedTask): TaskArgument[] {
+  return (task.advancedTaskDefinitionArguments ?? []).filter((a): a is TaskArgument => Boolean(a));
 }
 
 export function RunTaskSheet({
@@ -47,16 +62,26 @@ export function RunTaskSheet({
   const [customCommand, setCustomCommand] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const { data, loading } = useQuery(EnvironmentAdvancedTasksDocument, {
-    variables: { name: envName, project: Number(projectId) },
-    skip: !visible || !envName || !projectId,
-  });
+  const context = useActiveContext();
+  // Argument defaults and required-ness are only queryable on newer instances.
+  const hasArgumentMetadata = hasFeature(context ?? {}, 'taskArgumentMetadata');
+  const { data, loading } = useQuery(
+    hasArgumentMetadata
+      ? EnvironmentAdvancedTasksDetailedDocument
+      : EnvironmentAdvancedTasksDocument,
+    {
+      variables: { name: envName, project: Number(projectId) },
+      skip: !visible || !envName || !projectId,
+    },
+  );
 
   const [invokeTask, { loading: invoking }] = useMutation(InvokeRegisteredTaskDocument);
   const [addTask, { loading: adding }] = useMutation(AddTaskDocument);
   const busy = invoking || adding;
 
-  const tasks = (data?.environmentByName?.advancedTasks ?? []).filter(
+  // One cast at the boundary: the gated variant returns a superset, and
+  // AdvancedTask models the extra argument metadata as optional.
+  const tasks = ((data?.environmentByName?.advancedTasks ?? []) as (AdvancedTask | null)[]).filter(
     (t): t is AdvancedTask => Boolean(t),
   );
 
@@ -75,10 +100,18 @@ export function RunTaskSheet({
 
   const runRegistered = async () => {
     if (!selected?.id || !environmentId) return;
-    // `optional` and `defaultValue` are not queryable on older Lagoon
-    // instances, so required-ness cannot be checked client-side — send what
-    // the user supplied and let the API reject anything it needs.
     const args = taskArguments(selected);
+    // Required-ness is only known when the instance exposes `optional`;
+    // otherwise send what the user supplied and let the API reject it.
+    if (hasArgumentMetadata) {
+      const missing = args.filter(
+        (a) => !a.optional && !(argValues[a.name ?? ''] ?? a.defaultValue),
+      );
+      if (missing.length > 0) {
+        setError(`Missing required argument: ${missing[0].displayName ?? missing[0].name}`);
+        return;
+      }
+    }
     setError(null);
     try {
       const result = await invokeTask({
@@ -88,7 +121,7 @@ export function RunTaskSheet({
           argumentValues: args
             .map((a) => ({
               advancedTaskDefinitionArgumentName: a.name,
-              value: argValues[a.name ?? ''] ?? '',
+              value: argValues[a.name ?? ''] ?? a.defaultValue ?? '',
             }))
             .filter((a) => a.value !== ''),
         },
@@ -174,8 +207,9 @@ export function RunTaskSheet({
                 {taskArguments(selected).map((arg) => (
                   <Field
                     key={arg.id ?? arg.name}
-                    label={arg.displayName ?? arg.name ?? ''}
+                    label={`${arg.displayName ?? arg.name ?? ''}${arg.optional ? ' (optional)' : ''}`}
                     hint={arg.range?.length ? `One of: ${arg.range.join(', ')}` : undefined}
+                    placeholder={arg.defaultValue ?? ''}
                     value={argValues[arg.name ?? ''] ?? ''}
                     onChangeText={(v) => setArgValues((prev) => ({ ...prev, [arg.name ?? '']: v }))}
                   />

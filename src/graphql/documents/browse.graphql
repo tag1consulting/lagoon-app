@@ -41,3 +41,34 @@ query EnvironmentInfo($name: String!, $project: Int!) {
     }
   }
 }
+
+# --- Version-gated variant --------------------------------------------------
+
+query EnvironmentInfoDetailed($name: String!, $project: Int!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    name
+    deployType
+    deployBaseRef
+    environmentType
+    openshiftProjectName
+    created
+    updated
+    route
+    routes
+    services {
+      id
+      name
+      type
+      updated
+    }
+    facts(keyFacts: true, limit: 100) {
+      id
+      name
+      value
+      source
+      category
+      service
+    }
+  }
+}
