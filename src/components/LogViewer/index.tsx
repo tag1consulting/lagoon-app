@@ -1,7 +1,7 @@
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import * as Clipboard from 'expo-clipboard';
 import { memo, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { useLogLines } from '@/components/LogViewer/useLogLines';
 import { spacing, Theme, useTheme } from '@/theme';
@@ -44,7 +44,13 @@ export function LogViewer({ log, running }: { log: string | null | undefined; ru
   const { lines, parsing } = useLogLines(log);
   const [windowSize, setWindowSize] = useState(TAIL_WINDOW);
   const [nearBottom, setNearBottom] = useState(true);
+  const [autoscroll, setAutoscroll] = useState(true);
   const listRef = useRef<FlashListRef<AnsiLine>>(null);
+
+  const jumpToBottom = () => {
+    listRef.current?.scrollToEnd({ animated: true });
+    setAutoscroll(true);
+  };
 
   const visible = useMemo(
     () => lines.slice(Math.max(0, lines.length - windowSize)),
@@ -72,9 +78,19 @@ export function LogViewer({ log, running }: { log: string | null | undefined; ru
         <Text style={{ color: theme.textMuted, fontSize: 12 }}>
           {parsing ? 'Rendering log…' : `${lines.length.toLocaleString()} lines`}
         </Text>
-        <Pressable accessibilityRole="button" onPress={() => void copyAll()}>
-          <Text style={{ color: theme.primary, fontSize: 12, fontWeight: '600' }}>Copy log</Text>
-        </Pressable>
+        <View style={styles.toolbarRight}>
+          <View style={styles.autoscrollToggle}>
+            <Text style={{ color: theme.textMuted, fontSize: 12 }}>Autoscroll</Text>
+            <Switch
+              value={autoscroll}
+              onValueChange={setAutoscroll}
+              accessibilityLabel="Autoscroll to latest log lines"
+            />
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => void copyAll()}>
+            <Text style={{ color: theme.primary, fontSize: 12, fontWeight: '600' }}>Copy log</Text>
+          </Pressable>
+        </View>
       </View>
 
       <FlashList
@@ -84,10 +100,14 @@ export function LogViewer({ log, running }: { log: string | null | undefined; ru
         renderItem={({ item }) => <LogLine line={item} theme={theme} />}
         contentContainerStyle={styles.listContent}
         // Chat-style tail behavior: start at the bottom and stick to it while
-        // new log content arrives, unless the user scrolled away.
+        // new log content arrives, unless the user scrolled away or turned
+        // autoscroll off. autoscrollToBottomThreshold: 0 (rather than
+        // disabled: true) keeps startRenderingFromBottom's initial-position
+        // behavior intact when autoscroll is off — it only stops the
+        // follow-on-new-content part.
         maintainVisibleContentPosition={{
           startRenderingFromBottom: true,
-          autoscrollToBottomThreshold: 0.15,
+          autoscrollToBottomThreshold: autoscroll ? 0.15 : 0,
           animateAutoScrollToBottom: false,
         }}
         onScroll={(event) => {
@@ -115,7 +135,8 @@ export function LogViewer({ log, running }: { log: string | null | undefined; ru
       {!nearBottom ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => listRef.current?.scrollToEnd({ animated: true })}
+          accessibilityLabel="Jump to the end of the log"
+          onPress={jumpToBottom}
           style={[styles.jumpPill, { backgroundColor: theme.primary }]}
         >
           <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>↓ Latest</Text>
@@ -139,6 +160,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+  },
+  toolbarRight: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  autoscrollToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   listContent: {
     paddingHorizontal: spacing.sm,
