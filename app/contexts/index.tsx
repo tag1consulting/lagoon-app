@@ -57,11 +57,9 @@ export default function ContextsScreen() {
       <Stack.Screen
         options={{
           title: 'Lagoon contexts',
-          headerLeft: () => (
-            <Link href="/settings">
-              <Text style={{ color: theme.primary, fontSize: 16 }}>Settings</Text>
-            </Link>
-          ),
+          // No headerLeft override: this screen is pushed from the context
+          // switcher on every main screen, so the default back button is the
+          // way out. Settings is reached from the list footer instead.
           headerRight: () => (
             <Link href="/contexts/add">
               <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>Add</Text>
@@ -81,6 +79,13 @@ export default function ContextsScreen() {
             title="No contexts yet"
             body="Add a Lagoon instance to get started — you just need its GraphQL API URL."
           />
+        }
+        ListFooterComponent={
+          <Link href="/settings">
+            <Text style={[styles.settingsLink, { color: theme.primary, fontSize: 16 }]}>
+              Settings
+            </Text>
+          </Link>
         }
       />
     </>
@@ -107,5 +112,10 @@ const styles = StyleSheet.create({
   rowName: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  settingsLink: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    padding: spacing.md,
   },
 });

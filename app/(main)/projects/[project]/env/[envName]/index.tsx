@@ -1,7 +1,8 @@
 import { useMutation, useQuery } from '@apollo/client/react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useDeploymentEvents, useTaskEvents } from '@/api/liveUpdates';
 import { hasFeature } from '@/api/versionGate';
@@ -243,9 +244,15 @@ function InfoTab({ env }: { env: EnvInfo }) {
         <Card>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Routes</Text>
           {routes.map((route) => (
-            <Text key={route} style={{ color: theme.textMuted, fontSize: 13 }} numberOfLines={1}>
-              {route}
-            </Text>
+            <Pressable
+              key={route}
+              accessibilityRole="link"
+              onPress={() => void WebBrowser.openBrowserAsync(/^https?:\/\//.test(route) ? route : `https://${route}`)}
+            >
+              <Text style={{ color: theme.primary, fontSize: 13 }} numberOfLines={1}>
+                {route}
+              </Text>
+            </Pressable>
           ))}
         </Card>
       ) : null}

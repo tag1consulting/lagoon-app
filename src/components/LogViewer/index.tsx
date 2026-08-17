@@ -4,7 +4,7 @@ import { memo, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useLogLines } from '@/components/LogViewer/useLogLines';
-import { spacing, useTheme } from '@/theme';
+import { spacing, Theme, useTheme } from '@/theme';
 import { AnsiLine, stripAnsi } from '@/utils/ansi';
 
 /** Only the newest lines render by default; older chunks load on demand. */
@@ -15,15 +15,18 @@ const FOLLOW_THRESHOLD = 80;
 
 const MONO = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
-const LogLine = memo(function LogLine({ line }: { line: AnsiLine }) {
+const LogLine = memo(function LogLine({ line, theme }: { line: AnsiLine; theme: Theme }) {
   return (
-    <Text style={styles.line}>
+    <Text style={[styles.line, { color: theme.text }]}>
       {line.spans.length === 0 ? ' ' : null}
       {line.spans.map((span, i) => (
         <Text
           key={i}
           style={{
-            color: span.color,
+            // Uncolored spans (the common case) fall back to the theme's
+            // text color rather than React Native's default black, which is
+            // unreadable on the dark theme.
+            color: span.color ?? theme.text,
             backgroundColor: span.backgroundColor,
             fontWeight: span.bold ? '700' : '400',
             fontFamily: MONO,
@@ -78,7 +81,7 @@ export function LogViewer({ log, running }: { log: string | null | undefined; ru
         ref={listRef}
         data={visible}
         keyExtractor={(line) => String(line.key)}
-        renderItem={({ item }) => <LogLine line={item} />}
+        renderItem={({ item }) => <LogLine line={item} theme={theme} />}
         contentContainerStyle={styles.listContent}
         // Chat-style tail behavior: start at the bottom and stick to it while
         // new log content arrives, unless the user scrolled away.
