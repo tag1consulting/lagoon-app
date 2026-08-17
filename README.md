@@ -73,3 +73,7 @@ If login fails with **"Invalid parameter: redirect_uri"**, that instance's Keycl
 Both **Keycloak client ID** and **Redirect URI** are per-context fields, so an app rebuild is never needed to match whatever an instance registers.
 
 As a fallback, a context can use a pasted API token (e.g. from `lagoon get token`) instead of OIDC.
+
+## Branding
+
+App icons and the in-app mark (`assets/icon.png`, `assets/android-icon-*.png`, `assets/favicon.png`, `assets/splash-icon.png`, `assets/lagoon-mark.png`) are cropped from the official Lagoon hexagon mark, vectored from [`uselagoon/lagoon-website`](https://github.com/uselagoon/lagoon-website)'s `static/images/Lagoon-Stacked-Logo-Full-Colour.svg`, licensed Apache-2.0 by the Lagoon project (not Tag1-authored).

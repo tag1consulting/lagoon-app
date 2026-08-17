@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Stack, router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text } from 'react-native';
 
 import { logout } from '@/auth/authManager';
 import { Button, Card } from '@/components/ui';
@@ -50,6 +50,12 @@ export default function SettingsScreen() {
     <>
       <Stack.Screen options={{ title: 'Settings' }} />
       <ScrollView contentContainerStyle={styles.container}>
+        <Image
+          source={require('../assets/lagoon-mark.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="Lagoon logo"
+        />
         {context ? (
           <Card>
             <Text style={{ color: theme.text, fontWeight: '600' }}>{context.name}</Text>
@@ -94,5 +100,11 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.md,
     padding: spacing.md,
+  },
+  logo: {
+    alignSelf: 'center',
+    height: 72,
+    marginTop: spacing.sm,
+    width: 72,
   },
 });
