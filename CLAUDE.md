@@ -70,11 +70,11 @@ The app sends exactly `lagoonmobile://auth` (from `makeRedirectUri` in `src/auth
 
 The subtlety that shaped the code: **Keycloak renders that error on its own page and never redirects back**, so `promptAsync` returns a plain `dismiss` — indistinguishable from the user closing the browser. There is no `error` result to detect. `loginWithOidc` therefore treats *any* dismissal as a possible redirect-URI problem and surfaces the guidance panel, which prints the exact redirect URI with tap-to-copy. Do not "fix" that by hiding the panel on cancel; a genuine cancel simply ignores it.
 
-Fixes, in preference order:
-1. Register a dedicated public client (e.g. `lagoon-mobile`: standard flow on, public, valid redirect URIs `lagoonmobile://*`) and set it as the context's client ID — no rebuild needed, and it leaves the web dashboard's client alone.
-2. Append `lagoonmobile://*` to the existing `lagoon-ui` client. Append, never replace: dropping an existing entry breaks dashboard login.
+**Preferred fix: a dedicated public client.** Register one per instance (e.g. `lagoon-mobile`: standard flow on, public, valid redirect URIs `lagoonmobile://*`) and set it as the context's `keycloakClientId`. No rebuild needed, and the web dashboard's client is untouched. This is what SBS does, managed with the `pulumi_keycloak` provider against the existing realm.
 
-Upstream ships `lagoon-ui` with `redirectUris: ["*"]`, overridable via `KEYCLOAK_LAGOON_UI_CLIENT_REDIRECT_URIS`. Where an install manages Keycloak through IaC, change it there — and check whether it reconciles an **existing** realm, since Lagoon's Keycloak bootstrap guards many steps with "skip if already configured".
+The alternative — widening `lagoon-ui` — is worse than it looks. Upstream (`services/keycloak/startup-scripts/00-configure-lagoon.sh`) creates that client with `redirectUris: ["*"]` only when it does not already exist, and a separate `configure_lagoon_redirect_uris` step **replaces the entire list** from `KEYCLOAK_LAGOON_UI_CLIENT_REDIRECT_URIS` on every Keycloak start (it is explicitly not first-boot-only). So the override does reconcile existing realms, but any value you set must re-list every URI the dashboard needs, and it will be re-applied on each restart. Easy to break dashboard login by omission.
+
+Two knobs make the app fit whatever an instance registers, both per-context and editable in the UI: `keycloakClientId` and `redirectUri` (blank = `lagoonmobile://auth`). Prefer changing those over changing the app.
 
 Until an instance is fixed, `authMode: 'static-token'` is the working path.
 

@@ -66,9 +66,10 @@ On first launch the app goes straight to **Add context**. Give it a name (e.g. `
 
 Add more contexts from the same screen; the header shows the current one and taps through to switch.
 
-OIDC login uses the instance's Keycloak `lagoon` realm with the `lagoon-ui` public client by default. If the instance pins that client's redirect URIs, an admin must either:
+OIDC login uses the instance's Keycloak `lagoon` realm with the `lagoon-ui` public client by default, redirecting back to `lagoonmobile://auth`.
 
-1. add `lagoonmobile://*` to the `lagoon-ui` client's Valid Redirect URIs, or
-2. create a dedicated public client (e.g. `lagoon-mobile`, Standard Flow enabled, redirect URI `lagoonmobile://*`) and set that client ID on the context in-app.
+If login fails with **"Invalid parameter: redirect_uri"**, that instance's Keycloak does not allow the app's redirect URI. The recommended fix is a dedicated public client — `lagoon-mobile`, Standard Flow enabled, public (no secret), Valid Redirect URIs `lagoonmobile://*` — after which you set **Keycloak client ID** on the context in-app. That leaves the web dashboard's `lagoon-ui` client alone.
+
+Both **Keycloak client ID** and **Redirect URI** are per-context fields, so an app rebuild is never needed to match whatever an instance registers.
 
 As a fallback, a context can use a pasted API token (e.g. from `lagoon get token`) instead of OIDC.
