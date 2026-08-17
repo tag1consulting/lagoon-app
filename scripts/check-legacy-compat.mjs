@@ -9,7 +9,7 @@
  * current schema instead.
  */
 import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { buildSchema, parse, print, validate } from 'graphql';
 
@@ -26,8 +26,19 @@ let failures = 0;
 let legacyChecked = 0;
 let gatedChecked = 0;
 
-for (const file of readdirSync(DOCUMENTS_DIR).filter((f) => f.endsWith('.graphql'))) {
-  const doc = parse(readFileSync(join(DOCUMENTS_DIR, file), 'utf8'));
+// Recursive, to match codegen.ts's `src/graphql/documents/**/*.graphql` glob
+// — a flat readdir would silently skip any future subdirectory.
+function findGraphqlFiles(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return findGraphqlFiles(path);
+    return entry.name.endsWith('.graphql') ? [path] : [];
+  });
+}
+
+for (const path of findGraphqlFiles(DOCUMENTS_DIR)) {
+  const file = relative(DOCUMENTS_DIR, path);
+  const doc = parse(readFileSync(path, 'utf8'));
 
   for (const definition of doc.definitions) {
     if (definition.kind !== 'OperationDefinition') continue;
