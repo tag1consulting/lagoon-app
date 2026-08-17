@@ -97,8 +97,11 @@ function VersionProbe({ contextId }: { contextId: string }) {
     if (context && context.id === contextId) {
       void refreshLagoonVersion(getClient(context), contextId);
     }
-    // Probe once per authed mount.
+    // Re-probe on mount and whenever the endpoint changes — an edit can
+    // retarget the context at a different instance without unmounting this
+    // subtree, and clientFactory.ts already clears the stale lagoonVersion
+    // when that happens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contextId]);
+  }, [contextId, context?.graphqlUrl]);
   return null;
 }

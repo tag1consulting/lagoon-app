@@ -74,9 +74,23 @@ export function registerClientCleanup(): () => void {
           before.authMode !== c.authMode)
       );
     });
+    // An endpoint edit can point a context at a different Lagoon instance —
+    // its cached lagoonVersion belongs to the old one, so versionGate.ts must
+    // stop trusting it until a fresh probe confirms the new instance's
+    // version. hasFeature() fails closed on a missing version, so clearing it
+    // here (rather than leaving a stale, possibly-too-new version behind)
+    // prevents a version-gated query from being sent to an instance too old
+    // to support it.
+    const retargeted = state.contexts.filter((c) => {
+      const before = prev.find((p) => p.id === c.id);
+      return before && before.graphqlUrl !== c.graphqlUrl && c.lagoonVersion !== undefined;
+    });
     prev = state.contexts;
     for (const context of [...removed, ...edited]) {
       evictClient(context.id);
+    }
+    for (const context of retargeted) {
+      useContextsStore.getState().updateContext(context.id, { lagoonVersion: undefined });
     }
   });
 }
