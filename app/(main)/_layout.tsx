@@ -2,6 +2,7 @@ import { ApolloProvider } from '@apollo/client/react';
 import { Link, Redirect, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getClient } from '@/api/clientFactory';
 import { refreshLagoonVersion } from '@/api/versionGate';
@@ -71,6 +72,7 @@ export default function MainLayout() {
 
 function AuthedApp({ contextId }: { contextId: string }) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   // Re-read from the store so edits (e.g. a renamed context) propagate.
   const context = useActiveContext();
   if (!context || context.id !== contextId) return null;
@@ -83,7 +85,10 @@ function AuthedApp({ contextId }: { contextId: string }) {
         screenOptions={{
           headerStyle: { backgroundColor: theme.surface },
           headerTintColor: theme.text,
-          contentStyle: { backgroundColor: theme.background },
+          // Edge-to-edge on Android draws content behind the system nav bar
+          // (most visible with 3-button navigation), so every screen needs
+          // this bottom inset or its lowest content/controls get clipped.
+          contentStyle: { backgroundColor: theme.background, paddingBottom: insets.bottom },
           headerRight: () => <ContextSwitcherLink name={context.name} />,
         }}
       />
