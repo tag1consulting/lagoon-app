@@ -9,12 +9,12 @@ import {
   loginWithStaticToken,
 } from '@/auth/authManager';
 import { jwtExpiryMs } from '@/auth/jwt';
-import { redirectUri } from '@/auth/pkce';
+import { redirectUriFor } from '@/auth/pkce';
 import { Button, Card, EmptyState, Field } from '@/components/ui';
 import { useActiveContext } from '@/contexts/store';
 import { spacing, useTheme } from '@/theme';
 
-function RedirectHelp({ clientId }: { clientId: string }) {
+function RedirectHelp({ clientId, redirectUri }: { clientId: string; redirectUri: string }) {
   const theme = useTheme();
   const copyRedirectUri = async () => {
     await Clipboard.setStringAsync(redirectUri);
@@ -106,7 +106,12 @@ export default function LoginScreen() {
               {context.keycloakClientId}).
             </Text>
             <Button title="Sign in with browser" onPress={handleOidcLogin} loading={busy} />
-            {showRedirectHelp ? <RedirectHelp clientId={context.keycloakClientId} /> : null}
+            {showRedirectHelp ? (
+              <RedirectHelp
+                clientId={context.keycloakClientId}
+                redirectUri={redirectUriFor(context)}
+              />
+            ) : null}
           </>
         ) : (
           <>

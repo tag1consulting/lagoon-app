@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { getDefaultRedirectUri } from '@/auth/pkce';
 import { Button, Field } from '@/components/ui';
 import type { LagoonContext, LagoonContextInput } from '@/contexts/types';
 import { DEFAULT_KEYCLOAK_CLIENT_ID, DEFAULT_KEYCLOAK_REALM } from '@/contexts/types';
@@ -26,6 +27,7 @@ export function ContextForm({
     initial?.keycloakClientId ?? DEFAULT_KEYCLOAK_CLIENT_ID,
   );
   const [uiUrl, setUiUrl] = useState(initial?.uiUrl ?? '');
+  const [redirectUri, setRedirectUri] = useState(initial?.redirectUri ?? '');
   const [useStaticToken, setUseStaticToken] = useState(initial?.authMode === 'static-token');
   // Track whether the user has hand-edited derived fields so typing in the
   // GraphQL field keeps proposing values until they take over.
@@ -65,6 +67,7 @@ export function ContextForm({
       keycloakRealm: initial?.keycloakRealm ?? DEFAULT_KEYCLOAK_REALM,
       keycloakClientId: keycloakClientId.trim() || DEFAULT_KEYCLOAK_CLIENT_ID,
       uiUrl: uiUrl.trim() ? uiUrl.trim().replace(/\/+$/, '') : undefined,
+      redirectUri: redirectUri.trim() || undefined,
       authMode: useStaticToken ? 'static-token' : 'oidc',
     });
   };
@@ -106,6 +109,13 @@ export function ContextForm({
         hint="Public client used for login. Change if your admin created a dedicated mobile client."
         value={keycloakClientId}
         onChangeText={setKeycloakClientId}
+      />
+      <Field
+        label="Redirect URI (optional)"
+        placeholder={getDefaultRedirectUri()}
+        hint={`Leave blank to use ${getDefaultRedirectUri()}. Must match a Valid Redirect URI on the Keycloak client exactly.`}
+        value={redirectUri}
+        onChangeText={setRedirectUri}
       />
       <Field
         label="Web UI URL (optional)"

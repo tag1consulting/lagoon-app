@@ -2,7 +2,7 @@ import { exchangeCodeAsync, refreshAsync, TokenResponse } from 'expo-auth-sessio
 import { create } from 'zustand';
 
 import { jwtExpiryMs } from '@/auth/jwt';
-import { buildAuthRequest, getDiscovery, redirectUri } from '@/auth/pkce';
+import { buildAuthRequest, getDiscovery, redirectUriFor } from '@/auth/pkce';
 import {
   clearTokens,
   loadRefreshToken,
@@ -89,7 +89,7 @@ export async function loginWithOidc(context: LagoonContext): Promise<void> {
       const tokenResponse = await exchangeCodeAsync(
         {
           clientId: context.keycloakClientId,
-          redirectUri,
+          redirectUri: redirectUriFor(context),
           code: result.params.code,
           extraParams: { code_verifier: request.codeVerifier ?? '' },
         },

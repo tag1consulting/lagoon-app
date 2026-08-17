@@ -12,6 +12,12 @@ export interface LagoonContext {
   keycloakRealm: string;
   /** Public client used for the PKCE flow; lagoon-ui exists on every install */
   keycloakClientId: string;
+  /**
+   * Override for the OAuth redirect URI. Must match a Valid Redirect URI on
+   * the Keycloak client exactly. Empty/undefined uses the app default
+   * (`lagoonmobile://auth`).
+   */
+  redirectUri?: string;
   /** Optional web UI URL for external links */
   uiUrl?: string;
   authMode: AuthMode;
