@@ -106,7 +106,7 @@ export function ContextForm({
       <Field
         label="Keycloak client ID"
         placeholder={DEFAULT_KEYCLOAK_CLIENT_ID}
-        hint="Public client used for login. Change if your admin created a dedicated mobile client."
+        hint={`Public client used for login. If left as "${DEFAULT_KEYCLOAK_CLIENT_ID}" and it's rejected, sign-in also tries a "lagoon-mobile" client automatically. Set this only if your admin used a different dedicated client name.`}
         value={keycloakClientId}
         onChangeText={setKeycloakClientId}
       />

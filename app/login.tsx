@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
+  FALLBACK_CLIENT_ID as FALLBACK_KEYCLOAK_CLIENT_ID,
   LoginRedirectError,
   loginWithOidc,
   loginWithStaticToken,
@@ -12,9 +13,18 @@ import { jwtExpiryMs } from '@/auth/jwt';
 import { redirectUriFor } from '@/auth/pkce';
 import { Button, Card, EmptyState, Field } from '@/components/ui';
 import { useActiveContext } from '@/contexts/store';
+import { DEFAULT_KEYCLOAK_CLIENT_ID } from '@/contexts/types';
 import { spacing, useTheme } from '@/theme';
 
-function RedirectHelp({ clientId, redirectUri }: { clientId: string; redirectUri: string }) {
+function RedirectHelp({
+  clientId,
+  redirectUri,
+  triedFallback,
+}: {
+  clientId: string;
+  redirectUri: string;
+  triedFallback: boolean;
+}) {
   const theme = useTheme();
   const copyRedirectUri = async () => {
     await Clipboard.setStringAsync(redirectUri);
@@ -34,13 +44,21 @@ function RedirectHelp({ clientId, redirectUri }: { clientId: string; redirectUri
         </Text>
         <Text style={{ color: theme.primary, fontSize: 12 }}>Tap to copy</Text>
       </Pressable>
+      {triedFallback ? (
+        <Text style={{ color: theme.textMuted, marginTop: spacing.sm }}>
+          This app already tried both {`“${DEFAULT_KEYCLOAK_CLIENT_ID}”`} and the{' '}
+          {`“${FALLBACK_KEYCLOAK_CLIENT_ID}”`} convention automatically — if your instance uses a
+          different dedicated client name, set it as the Keycloak client ID below.
+        </Text>
+      ) : null}
       <Text style={{ color: theme.textMuted, marginTop: spacing.sm }}>
         An administrator of this Lagoon instance can allow it by either:
         {'\n\n'}1. Adding that URI (or {`“lagoonmobile://*”`}) to Valid Redirect URIs on the{' '}
         {`“${clientId}”`} client in the {'“lagoon”'} Keycloak realm, or
-        {'\n\n'}2. Creating a dedicated public client for this app — Standard Flow enabled,
-        Valid Redirect URIs {`“lagoonmobile://*”`} — and setting its ID in this context&apos;s
-        settings.
+        {'\n\n'}2. Creating a dedicated public client named {`“${FALLBACK_KEYCLOAK_CLIENT_ID}”`}{' '}
+        (tried automatically) or any other name — Standard Flow enabled, Valid Redirect URIs{' '}
+        {`“lagoonmobile://*”`} — and setting its ID in this context&apos;s settings if it isn&apos;t
+        that default name.
         {'\n\n'}To get going right now without an admin, switch this context to
         {' “Use a pasted token”'} in its settings.
       </Text>
@@ -59,6 +77,10 @@ export default function LoginScreen() {
   if (!context) {
     return <EmptyState title="No active context" body="Add a Lagoon context first." />;
   }
+
+  // Captured before the attempt: loginWithOidc only tries the lagoon-mobile
+  // fallback when the client id was still the default at call time.
+  const triedFallback = context.keycloakClientId === DEFAULT_KEYCLOAK_CLIENT_ID;
 
   const handleOidcLogin = async () => {
     setBusy(true);
@@ -110,6 +132,7 @@ export default function LoginScreen() {
               <RedirectHelp
                 clientId={context.keycloakClientId}
                 redirectUri={redirectUriFor(context)}
+                triedFallback={triedFallback}
               />
             ) : null}
           </>

@@ -11,7 +11,16 @@ import {
   saveStaticToken,
 } from '@/auth/secureTokens';
 import { useContextsStore } from '@/contexts/store';
-import type { LagoonContext } from '@/contexts/types';
+import { DEFAULT_KEYCLOAK_CLIENT_ID, type LagoonContext } from '@/contexts/types';
+
+/**
+ * Convention documented in CLAUDE.md for instances that lock down lagoon-ui's
+ * redirect URIs: a dedicated public client named exactly this, standard flow
+ * enabled, Valid Redirect URIs lagoonmobile://*. Tried automatically so a
+ * fresh context works without the user finding and pasting a client ID by
+ * hand — see the "Preferred fix" note in CLAUDE.md.
+ */
+export const FALLBACK_CLIENT_ID = 'lagoon-mobile';
 
 /** Access token considered stale this many ms before its actual expiry. */
 const EXPIRY_SLACK_MS = 30_000;
@@ -77,53 +86,85 @@ async function persistRefreshToken(contextId: string, response: TokenResponse): 
 /**
  * Interactive OIDC login: opens the system browser for the Keycloak PKCE flow.
  * Retries once without the offline_access scope if the realm rejects it.
+ *
+ * If the context still has the default lagoon-ui client id (i.e. the user
+ * hasn't pointed it at something else on purpose) and that attempt looks like
+ * a redirect-URI rejection, retries once more against the lagoon-mobile
+ * convention before surfacing the manual guidance panel — many instances
+ * lock down lagoon-ui's redirect URIs and expect that dedicated client
+ * instead (see CLAUDE.md). A successful client id is persisted onto the
+ * context so refresh (which reads context.keycloakClientId directly) keeps
+ * working without repeating this fallback on every launch.
+ *
+ * Trade-off: because a dismissal is indistinguishable from a redirect-URI
+ * rejection (see below), a genuine cancel on a stock instance (lagoon-ui
+ * works, user just closed the browser) also triggers one extra automatic
+ * reopen against lagoon-mobile before giving up — bounded to exactly one
+ * extra attempt, only when the client id is still the default.
  */
 export async function loginWithOidc(context: LagoonContext): Promise<void> {
-  const discovery = await getDiscovery(context);
+  const clientIdCandidates =
+    context.keycloakClientId === DEFAULT_KEYCLOAK_CLIENT_ID
+      ? [DEFAULT_KEYCLOAK_CLIENT_ID, FALLBACK_CLIENT_ID]
+      : [context.keycloakClientId];
 
-  for (const withOffline of [true, false]) {
-    const request = buildAuthRequest(context, withOffline);
-    const result = await request.promptAsync(discovery);
+  for (const clientId of clientIdCandidates) {
+    const discovery = await getDiscovery(context);
 
-    if (result.type === 'success' && result.params.code) {
-      const tokenResponse = await exchangeCodeAsync(
-        {
-          clientId: context.keycloakClientId,
-          redirectUri: redirectUriFor(context),
-          code: result.params.code,
-          extraParams: { code_verifier: request.codeVerifier ?? '' },
-        },
-        discovery,
-      );
-      await persistRefreshToken(context.id, tokenResponse);
-      useAuthStore.getState().setSession(context.id, sessionFromTokenResponse(tokenResponse));
-      return;
-    }
+    for (const withOffline of [true, false]) {
+      const request = buildAuthRequest({ ...context, keycloakClientId: clientId }, withOffline);
+      const result = await request.promptAsync(discovery);
 
-    if (result.type === 'error') {
-      const code = result.params?.error ?? result.error?.code ?? '';
-      if (withOffline && /invalid_scope|invalid_request/.test(code)) {
-        continue; // realm may not allow offline_access — retry without it
+      if (result.type === 'success' && result.params.code) {
+        const tokenResponse = await exchangeCodeAsync(
+          {
+            clientId,
+            redirectUri: redirectUriFor(context),
+            code: result.params.code,
+            extraParams: { code_verifier: request.codeVerifier ?? '' },
+          },
+          discovery,
+        );
+        if (clientId !== context.keycloakClientId) {
+          useContextsStore.getState().updateContext(context.id, { keycloakClientId: clientId });
+        }
+        await persistRefreshToken(context.id, tokenResponse);
+        useAuthStore.getState().setSession(context.id, sessionFromTokenResponse(tokenResponse));
+        return;
       }
-      const redirectProblem = /redirect/i.test(
-        `${code} ${result.params?.error_description ?? ''} ${result.error?.description ?? ''}`,
-      );
-      throw new LoginRedirectError(
-        result.error?.description ?? result.params?.error_description ?? `Login failed (${code})`,
-        redirectProblem,
-      );
-    }
 
-    // Dismissal is ambiguous: the user may have closed the browser, but
-    // Keycloak also renders its own "Invalid parameter: redirect_uri" page and
-    // never redirects back, which reaches us as a dismissal rather than an
-    // error. Surface the redirect guidance either way — it is the only
-    // actionable hint we can offer, and a genuine cancel simply ignores it.
-    throw new LoginRedirectError(
-      'Login did not complete. If the browser showed "Invalid parameter: redirect_uri", this instance needs the fix below.',
-      true,
-    );
+      if (result.type === 'error') {
+        const code = result.params?.error ?? result.error?.code ?? '';
+        if (withOffline && /invalid_scope|invalid_request/.test(code)) {
+          continue; // realm may not allow offline_access — retry without it
+        }
+        const redirectProblem = /redirect/i.test(
+          `${code} ${result.params?.error_description ?? ''} ${result.error?.description ?? ''}`,
+        );
+        if (redirectProblem && clientId !== clientIdCandidates[clientIdCandidates.length - 1]) {
+          break; // try the next client id candidate
+        }
+        throw new LoginRedirectError(
+          result.error?.description ?? result.params?.error_description ?? `Login failed (${code})`,
+          redirectProblem,
+        );
+      }
+
+      // Dismissal is ambiguous: the user may have closed the browser, but
+      // Keycloak also renders its own "Invalid parameter: redirect_uri" page
+      // and never redirects back, which reaches us as a dismissal rather than
+      // an error. Treat it as a possible redirect problem either way and try
+      // the next client id candidate (if any) — it is the only actionable
+      // hint we can offer, and a genuine cancel simply ignores whatever we do
+      // next.
+      break;
+    }
   }
+
+  throw new LoginRedirectError(
+    'Login did not complete. If the browser showed "Invalid parameter: redirect_uri", this instance needs the fix below.',
+    true,
+  );
 }
 
 /** Store a pasted API token for a static-token context. */
