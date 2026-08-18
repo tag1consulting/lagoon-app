@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Jekyll (docs/)
+docs/_site/
+docs/.jekyll-cache/
+docs/.bundle/
+docs/.jekyll-metadata
+docs/Gemfile.lock
+docs/vendor/
