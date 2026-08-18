@@ -28,7 +28,7 @@ CI (`.github/workflows/ci.yml`) runs `codegen:check`, `lint`, `typecheck`, `test
 
 ## Getting a build onto a phone
 
-`.github/workflows/android-build.yml` runs on every PR and uploads an `app-release-apk` artifact (expires after 14 days), and again on every published GitHub release, where it additionally attaches the same APK directly to the release page (durable, no expiry) via `gh release upload`. Facts learned the hard way:
+`.github/workflows/android-build.yml` runs once per merge to `main` (not on every PR push — a real Gradle build is too expensive to run on every commit under review) and uploads an `app-release-apk` artifact (expires after 14 days), and again on every published GitHub release, where it additionally attaches the same APK directly to the release page (durable, no expiry) via `gh release upload`. `workflow_dispatch` is available for an on-demand build from any branch. Facts learned the hard way:
 
 - It builds **release**, not debug, on purpose. A debug APK boots the `expo-dev-client` launcher ("Development Build", asking for a dev-server URL) and is useless without Metro on the same network. Release embeds the JS bundle and runs standalone.
 - Release is signed with the **debug keystore** (Expo/RN template default), so no secrets are needed. Fine for internal testing, not for Play Store.
@@ -134,9 +134,9 @@ Large parts of the Lagoon API are intentionally unused so far — backups/restor
 
 ## Verification status
 
-The app has **never been exercised end-to-end against a live Lagoon**. CI is green and a release APK installs and runs, but browsing, deploys, tasks, and log streaming are all unverified against a real API. Treat any claim that a screen "works" as unproven until someone confirms it on a device.
+The app has been exercised end-to-end against a live Lagoon instance from a physical Android device: OIDC login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs have all been confirmed working. CI is green and a release APK installs and runs on real hardware.
 
-Known-good so far: context add/edit persists, and the PKCE flow reaches a real Keycloak (it got as far as being rejected for its redirect URI).
+Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth fallback, and anything outside V1 scope (backups/restores, environment variable management, insights, problems, organization/user/group administration).
 
 ## Working in the Claude Code web/remote sandbox
 

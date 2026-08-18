@@ -4,6 +4,10 @@ A mobile client for the [Lagoon](https://github.com/uselagoon/lagoon) applicatio
 
 Android-first; iOS builds from the same codebase.
 
+## About this project
+
+This app was built through AI-assisted development with [Claude Code](https://claude.ai/code), Anthropic's coding agent, under human direction and review: a human developer set the architecture, reviewed the implementation, and directed testing, while Claude Code wrote and iterated on most of the code. It has been tested end-to-end against a live Lagoon instance from a physical Android device, covering login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs.
+
 ## Stack
 
 - [Expo](https://expo.dev) (managed workflow + dev client), [expo-router](https://docs.expo.dev/router/introduction/), TypeScript (strict)
@@ -54,7 +58,7 @@ A manual GitHub Actions workflow (`EAS Build`) triggers cloud builds; it needs a
 
 ## Installing a build on a phone
 
-The **Android build** workflow (`.github/workflows/android-build.yml`) runs on every pull request and attaches an `app-release-apk` artifact — download it from the workflow run page, unzip, transfer `app-release.apk` to the phone, and install it (Android will ask you to allow installs from that source). PR artifacts expire after 14 days.
+The **Android build** workflow (`.github/workflows/android-build.yml`) runs once per merge to `main` (not on every PR push — a ~25 min native build on every commit under review is expensive) and attaches an `app-release-apk` artifact — download it from the workflow run page, unzip, transfer `app-release.apk` to the phone, and install it (Android will ask you to allow installs from that source). Artifacts from that trigger expire after 14 days. It's also available via `workflow_dispatch` if you need a build from a branch that hasn't merged yet.
 
 For a durable copy, every [GitHub release](https://github.com/tag1consulting/lagoon-app/releases) has the same APK attached directly to the release page, built fresh from the tagged commit (the `release: [published]` trigger on the same workflow) — that copy doesn't expire. Publishing a release (`gh release create vX.Y.Z ...` or via the GitHub UI) triggers the build and attaches the APK automatically; nothing extra to run.
 

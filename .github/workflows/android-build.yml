@@ -9,7 +9,12 @@
 # needed — fine for internal testing, not for Play Store distribution.
 #
 # Two triggers, one job:
-# - pull_request: costs ~25 minutes, so it doesn't run on every push.
+# - push to main: runs once per merge, not once per PR push, since a ~25min
+#   native build on every commit in review is expensive and PRs get plenty
+#   of iteration before merge. ci.yml's `bundle` job still runs on every PR
+#   push and is the strongest pre-merge signal available (Metro/Hermes
+#   compile) short of the real native build — it just can't exercise Gradle,
+#   autolinking, or native modules the way this workflow does.
 # - release (published): `gh release create`/publishing a draft fires this,
 #   and the build attaches its APK straight onto that release — the whole
 #   reason the APK is a Checkpoint Trigger's release asset instead of a
@@ -20,7 +25,8 @@
 name: Android build
 
 on:
-  pull_request:
+  push:
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
