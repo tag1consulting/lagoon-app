@@ -4,6 +4,8 @@ A mobile client for the [Lagoon](https://github.com/uselagoon/lagoon) applicatio
 
 Android-first; iOS builds from the same codebase.
 
+Full documentation: **[tag1consulting.github.io/lagoon-app](https://tag1consulting.github.io/lagoon-app/)**
+
 ## About this project
 
 This app was built through AI-assisted development with [Claude Code](https://claude.ai/code), Anthropic's coding agent, under human direction and review: a human developer set the architecture, reviewed the implementation, and directed testing, while Claude Code wrote and iterated on most of the code. It has been tested end-to-end against a live Lagoon instance from a physical Android device, covering login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs.
@@ -29,10 +31,15 @@ npm start              # Metro only, once a dev client is installed
 Checks:
 
 ```bash
+npm run codegen:check   # regenerate src/graphql/generated and fail on drift
+npm run compat:check    # ungated GraphQL operations must work on Lagoon 2.8
 npm run lint
 npm run typecheck
 npm test
+npm run bundle          # Metro/Hermes export — catches what tsc can't
 ```
+
+CI runs all six on every push (see [CLAUDE.md](CLAUDE.md) for what each one actually proves).
 
 ## GraphQL schema
 

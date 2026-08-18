@@ -22,7 +22,7 @@ npm run bundle                    # Metro/Hermes export — catches what tsc can
 
 `codegen:check` stages `src/graphql/generated` before diffing (so newly generated files count as drift) — running it locally leaves those files in the git index.
 
-CI (`.github/workflows/ci.yml`) runs `codegen:check`, `lint`, `typecheck`, `test`, `bundle` on every push. `bundle` is the only check that exercises module resolution and the Hermes compiler, so it catches broken imports and unsupported syntax that typecheck passes over. It does **not** verify native modules — only a real Gradle/Xcode build does.
+CI (`.github/workflows/ci.yml`) runs `codegen:check`, `compat:check`, `lint`, `typecheck`, `test`, `bundle` on every push. `bundle` is the only check that exercises module resolution and the Hermes compiler, so it catches broken imports and unsupported syntax that typecheck passes over. It does **not** verify native modules — only a real Gradle/Xcode build does.
 
 **Running the app requires a development build — Expo Go will not work**, because the OAuth flow uses the `lagoonmobile://` custom scheme. Use `npm run android` (needs a local Android SDK) or `eas build --profile development`. Once a dev client is installed, `npm start` is enough for iteration.
 
@@ -103,7 +103,7 @@ useQuery(hasFeature(context ?? {}, 'deploymentDetails')
 
 The extra fields are modelled as optional on the consuming types (`DeploymentSummary`, `TaskSummary`, `TaskArgument`), so one cast at the query boundary absorbs the difference and the UI simply omits absent values. `@include`/`@skip` cannot substitute for this — the server validates a field's existence regardless of the directive.
 
-Feature thresholds in `versionGate.ts` were measured by validating against `typeDefs.js` at tagged releases (2.8 → 2.33). Sampling was coarse, so they are safe **upper bounds**; erring high costs cosmetic detail on a narrow band, erring low breaks the query. Currently unused because they need very new instances: `Deployment.buildType` (≥2.30) and `EnvironmentService.replicas` (≥2.33).
+Feature thresholds in `versionGate.ts` were measured by validating against `typeDefs.js` at tagged releases (2.8 → 2.33). Sampling was coarse, so they are safe **upper bounds**; erring high costs cosmetic detail on a narrow band, erring low breaks the query. Currently unused because they need very new instances: `Deployment.buildType` (≥2.30), `Environment.idleState` + `idleOrUnidleEnvironment` (≥2.31), `stopOrStartEnvironmentService` (≥2.31), project cloning (≥2.33), and `EnvironmentService.replicas` (≥2.33).
 
 ### Live updates and logs
 
