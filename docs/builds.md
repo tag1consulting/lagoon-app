@@ -50,10 +50,12 @@ npx expo run:ios --configuration Release --device generic --output ./build
 
 An installable, signed build (a real device beyond your own, TestFlight, or the App Store) needs Xcode's own signing flow: run `npx expo prebuild --platform ios`, open `ios/*.xcworkspace` in Xcode, set your Apple Developer team under **Signing & Capabilities**, then **Product → Archive** and distribute from the Organizer. A physical-device install for personal testing works with a free Apple ID; TestFlight/App Store distribution needs a paid Apple Developer Program membership ($99/year) — that requirement comes from Apple, not from any build tooling choice.
 
-iOS builds aren't run in CI yet — no macOS runner is configured. Adding one is a possible follow-up (see the note on macOS runner cost below).
+## iOS in CI (simulator only, manual trigger)
+
+`.github/workflows/ios-build.yml` builds the native Xcode project on a GitHub-hosted macOS runner and uploads the resulting `.app` as a workflow artifact, the same validation `android-build.yml` gives Android — it just proves the native build compiles. It's `workflow_dispatch`-only (run it manually from the Actions tab) and produces an unsigned Simulator build only: no install on a real device, no distribution.
 
 > {: .note }
-> GitHub-hosted macOS runners cost roughly 10x a Linux runner's per-minute rate, and consume a Team plan's shared monthly included-minutes pool at that same 10x rate — worth weighing before wiring up an automatic iOS CI build.
+> GitHub-hosted macOS runners cost roughly 10x a Linux runner's per-minute rate, and consume a Team plan's shared monthly included-minutes pool at that same 10x rate. That's why this doesn't run automatically on push or release yet, and why there's no code signing wired up for an installable/distributable build — both are separate follow-up decisions.
 
 ## Signing
 

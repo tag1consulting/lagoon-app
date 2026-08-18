@@ -83,7 +83,9 @@ npx expo run:ios --configuration Release --device generic --output ./build
 
 An installable, signed build (a real device beyond your own, TestFlight, or the App Store) needs Xcode's own signing flow: run `npx expo prebuild --platform ios`, open `ios/*.xcworkspace` in Xcode, set your Apple Developer team under **Signing & Capabilities**, then **Product → Archive** and distribute from the Organizer. A physical-device install for personal testing works with a free Apple ID; TestFlight/App Store distribution needs a paid Apple Developer Program membership ($99/year) — that requirement comes from Apple, not from any build tooling choice.
 
-There is no iOS-specific app code — the URL scheme and auth-session browser behavior come from the shared Expo config in `app.config.ts`. iOS builds aren't run in CI yet (no macOS runner is configured); see the docs site's build page for the status of that.
+There is no iOS-specific app code — the URL scheme and auth-session browser behavior come from the shared Expo config in `app.config.ts`.
+
+A manual-only (`workflow_dispatch`) `iOS build (simulator, unsigned)` workflow builds the native Xcode project on a GitHub-hosted macOS runner and uploads the resulting `.app` as a workflow artifact — it validates the native build compiles, same as `android-build.yml` does for Android, but produces a Simulator-only binary that isn't installable on a real device or distributable anywhere. It does not run automatically on push or release (macOS runner minutes cost roughly 10x Linux and share the org's Actions-minutes pool), and there's no code signing set up yet for anything beyond that.
 
 ## Installing a build on a phone
 

@@ -1,0 +1,85 @@
+# Tier 1: simulator-only, unsigned iOS build. Validates that the native
+# Xcode project actually compiles — the same class of problem
+# android-build.yml catches for Android — without any Apple signing setup.
+# The output .app only runs in the iOS Simulator; it cannot be installed on
+# a real device or distributed anywhere.
+#
+# workflow_dispatch only, on purpose: GitHub-hosted macOS runners cost
+# roughly 10x a Linux runner's per-minute rate and consume the org's shared
+# Actions-minutes pool at that same 10x rate, so this does not run
+# automatically on push or release. Promoting it to an automatic trigger, or
+# adding real code signing for an installable/distributable build, are both
+# separate follow-ups requiring their own decision.
+#
+# Actions are referenced by floating major tag rather than pinned SHA, so the
+# mutable-action-tag lint is suppressed per line. See ci.yml for the rationale.
+name: iOS build (simulator, unsigned)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator-build:
+    runs-on: macos-latest
+    # Unmeasured — no run of this workflow has completed yet, so this is a
+    # starting guess, not a measured figure like android-build.yml's 45.
+    # Adjust once a real duration is known.
+    timeout-minutes: 45
+    steps:
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/checkout@v7
+
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # ios/ is not committed (continuous native generation), so it is
+      # generated from app.config.ts on every run. CocoaPods ships
+      # preinstalled on the GitHub-hosted macOS image.
+      - name: Generate native project
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod install
+
+      # Read the scheme from the generated workspace rather than hardcoding
+      # a name, since prebuild derives it from app.config.ts and nothing
+      # here should assume what that resolves to.
+      - name: Discover the Xcode scheme
+        id: scheme
+        working-directory: ios
+        run: |
+          SCHEME=$(xcodebuild -list -json -workspace *.xcworkspace \
+            | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).workspace.schemes[0])")
+          echo "name=$SCHEME" >> "$GITHUB_OUTPUT"
+
+      - name: Build for iOS Simulator (unsigned)
+        working-directory: ios
+        run: |
+          xcodebuild build \
+            -workspace *.xcworkspace \
+            -scheme "${{ steps.scheme.outputs.name }}" \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+      # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: ios/build/Build/Products/Release-iphonesimulator/*.app
+          if-no-files-found: error
+          retention-days: 14
