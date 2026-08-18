@@ -22,18 +22,18 @@ describe('contexts store', () => {
   });
 
   it('makes the first added context active', () => {
-    const ctx = useContextsStore.getState().addContext(makeInput('sbs'));
+    const ctx = useContextsStore.getState().addContext(makeInput('acme'));
     expect(useContextsStore.getState().activeContextId).toBe(ctx.id);
   });
 
   it('does not steal active status on later adds', () => {
-    const first = useContextsStore.getState().addContext(makeInput('sbs'));
+    const first = useContextsStore.getState().addContext(makeInput('acme'));
     useContextsStore.getState().addContext(makeInput('other'));
     expect(useContextsStore.getState().activeContextId).toBe(first.id);
   });
 
   it('switches active context, ignoring unknown ids', () => {
-    useContextsStore.getState().addContext(makeInput('sbs'));
+    useContextsStore.getState().addContext(makeInput('acme'));
     const second = useContextsStore.getState().addContext(makeInput('other'));
     useContextsStore.getState().setActiveContext(second.id);
     expect(useContextsStore.getState().activeContextId).toBe(second.id);
@@ -42,15 +42,15 @@ describe('contexts store', () => {
   });
 
   it('updates fields without changing identity', () => {
-    const ctx = useContextsStore.getState().addContext(makeInput('sbs'));
-    useContextsStore.getState().updateContext(ctx.id, { name: 'SBS prod', id: 'hax' } as never);
+    const ctx = useContextsStore.getState().addContext(makeInput('acme'));
+    useContextsStore.getState().updateContext(ctx.id, { name: 'Acme prod', id: 'hax' } as never);
     const updated = useContextsStore.getState().contexts[0];
     expect(updated.id).toBe(ctx.id);
-    expect(updated.name).toBe('SBS prod');
+    expect(updated.name).toBe('Acme prod');
   });
 
   it('falls back to another context when the active one is removed', () => {
-    const first = useContextsStore.getState().addContext(makeInput('sbs'));
+    const first = useContextsStore.getState().addContext(makeInput('acme'));
     const second = useContextsStore.getState().addContext(makeInput('other'));
     useContextsStore.getState().removeContext(first.id);
     expect(useContextsStore.getState().activeContextId).toBe(second.id);

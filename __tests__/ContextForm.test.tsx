@@ -10,11 +10,11 @@ describe('ContextForm', () => {
 
     await fireEvent.changeText(
       getByPlaceholderText('https://api.example.com/graphql'),
-      'https://api.sbs.example.com/graphql',
+      'https://api.acme.example.com/graphql',
     );
 
-    expect(getByDisplayValue('https://keycloak.sbs.example.com')).toBeTruthy();
-    expect(getByDisplayValue('https://ui.sbs.example.com')).toBeTruthy();
+    expect(getByDisplayValue('https://keycloak.acme.example.com')).toBeTruthy();
+    expect(getByDisplayValue('https://ui.acme.example.com')).toBeTruthy();
   });
 
   it('rejects submission without a valid GraphQL URL', async () => {
@@ -23,7 +23,7 @@ describe('ContextForm', () => {
       <ContextForm submitLabel="Add" onSubmit={onSubmit} />,
     );
 
-    await fireEvent.changeText(getByPlaceholderText('SBS'), 'SBS');
+    await fireEvent.changeText(getByPlaceholderText('Acme'), 'Acme');
     await fireEvent.press(getByText('Add'));
 
     expect(onSubmit).not.toHaveBeenCalled();
@@ -36,18 +36,18 @@ describe('ContextForm', () => {
       <ContextForm submitLabel="Add" onSubmit={onSubmit} />,
     );
 
-    await fireEvent.changeText(getByPlaceholderText('SBS'), 'SBS');
+    await fireEvent.changeText(getByPlaceholderText('Acme'), 'Acme');
     await fireEvent.changeText(
       getByPlaceholderText('https://api.example.com/graphql'),
-      'api.sbs.example.com',
+      'api.acme.example.com',
     );
     await fireEvent.press(getByText('Add'));
 
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'SBS',
-        graphqlUrl: 'https://api.sbs.example.com/graphql',
-        keycloakBaseUrl: 'https://keycloak.sbs.example.com',
+        name: 'Acme',
+        graphqlUrl: 'https://api.acme.example.com/graphql',
+        keycloakBaseUrl: 'https://keycloak.acme.example.com',
         keycloakRealm: 'lagoon',
         keycloakClientId: 'lagoon-ui',
         authMode: 'oidc',
