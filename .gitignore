@@ -43,6 +43,7 @@ yarn-error.*
 # Jekyll (docs/)
 docs/_site/
 docs/.jekyll-cache/
+docs/.bundle/
 docs/.jekyll-metadata
 docs/Gemfile.lock
 docs/vendor/
