@@ -21,7 +21,7 @@ This app requires a development build (`expo-dev-client`). It will **not** work 
 ```bash
 npm install
 npm run android        # build & launch dev client on Android (needs Android SDK)
-# or: eas build --profile development --platform android
+npm run ios            # build & launch dev client on iOS (needs a Mac with Xcode)
 npm start              # Metro only, once a dev client is installed
 ```
 

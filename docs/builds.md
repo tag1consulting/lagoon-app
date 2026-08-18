@@ -18,14 +18,43 @@ That APK is standalone — the JS bundle is embedded, so it launches straight in
 > {: .warning }
 > A **debug** build behaves differently: because `expo-dev-client` is installed, it boots a "Development Build" launcher asking for a dev server URL, and needs `npx expo start` running on the same network. Use the release artifact unless you specifically want live reload. Debug and release also share the package name but not the signature, so **uninstall any previous build first** or Android will refuse the install.
 
-## EAS build profiles
+## Building locally
 
-- `development` — dev client, internal distribution
-- `preview` — release APK for internal hand-off: `eas build --profile preview --platform android`
-- `production` — AAB (Play Store), auto-incrementing version
+All builds are native (Gradle / Xcode) — there's no cloud build service involved. `android/` and `ios/` aren't committed (continuous native generation via `expo prebuild`), so they're regenerated from `app.config.ts` before every build.
 
-iOS: `eas build --profile preview --platform ios` once Apple credentials are configured in EAS. There is no iOS-specific code — the URL scheme and auth-session browser behavior come from the shared Expo config.
+### Android
+
+```bash
+npx expo prebuild --platform android --no-install
+cd android && ./gradlew assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk
+```
+
+This is exactly what `android-build.yml` runs in CI. Play Store distribution needs an AAB instead (`./gradlew bundleRelease`) and a real signing key.
+
+### iOS
+
+Needs a Mac with Xcode and the Command Line Tools installed. There is no iOS-specific app code — the URL scheme and auth-session browser behavior come from the shared Expo config in `app.config.ts`.
+
+```bash
+npm install
+npm run ios              # Debug dev-client build, runs on the first booted simulator
+npm run ios -- -d        # prompts to pick a physical device instead
+```
+
+For a Release build without installing (build-only, unsigned):
+
+```bash
+npx expo run:ios --configuration Release --device generic --output ./build
+```
+
+An installable, signed build (a real device beyond your own, TestFlight, or the App Store) needs Xcode's own signing flow: run `npx expo prebuild --platform ios`, open `ios/*.xcworkspace` in Xcode, set your Apple Developer team under **Signing & Capabilities**, then **Product → Archive** and distribute from the Organizer. A physical-device install for personal testing works with a free Apple ID; TestFlight/App Store distribution needs a paid Apple Developer Program membership ($99/year) — that requirement comes from Apple, not from any build tooling choice.
+
+iOS builds aren't run in CI yet — no macOS runner is configured. Adding one is a possible follow-up (see the note on macOS runner cost below).
+
+> {: .note }
+> GitHub-hosted macOS runners cost roughly 10x a Linux runner's per-minute rate, and consume a Team plan's shared monthly included-minutes pool at that same 10x rate — worth weighing before wiring up an automatic iOS CI build.
 
 ## Signing
 
-Release builds from the GitHub Actions workflow are signed with the **debug keystore** (the Expo/RN template default), so no secrets are needed to produce them. That's fine for internal testing, but not for a Play Store submission — a production release needs a real signing key configured in EAS.
+Release builds from the GitHub Actions workflow are signed with the **debug keystore** (the Expo/RN template default), so no secrets are needed to produce them. That's fine for internal testing, but not for a Play Store submission — a production release needs a real signing key.

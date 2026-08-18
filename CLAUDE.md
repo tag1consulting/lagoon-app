@@ -24,7 +24,7 @@ npm run bundle                    # Metro/Hermes export — catches what tsc can
 
 CI (`.github/workflows/ci.yml`) runs `codegen:check`, `compat:check`, `lint`, `typecheck`, `test`, `bundle` on every push. `bundle` is the only check that exercises module resolution and the Hermes compiler, so it catches broken imports and unsupported syntax that typecheck passes over. It does **not** verify native modules — only a real Gradle/Xcode build does.
 
-**Running the app requires a development build — Expo Go will not work**, because the OAuth flow uses the `lagoonmobile://` custom scheme. Use `npm run android` (needs a local Android SDK) or `eas build --profile development`. Once a dev client is installed, `npm start` is enough for iteration.
+**Running the app requires a development build — Expo Go will not work**, because the OAuth flow uses the `lagoonmobile://` custom scheme. Use `npm run android` (needs a local Android SDK) or `npm run ios` (needs a Mac with Xcode). Once a dev client is installed, `npm start` is enough for iteration.
 
 ## Getting a build onto a phone
 
@@ -142,7 +142,7 @@ Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth 
 
 If you are running in the hosted remote environment, these are hard limits, not things to retry:
 
-- `dl.google.com` and `api.expo.dev` are **blocked by the egress network policy** (403 at the gateway). That means no Android SDK download, no Google Maven (so no local Gradle build), and no EAS login or builds. Maven Central and `services.gradle.org` *are* reachable, which is not sufficient on its own.
+- `dl.google.com` is **blocked by the egress network policy** (403 at the gateway). That means no Android SDK download and no Google Maven, so no local Gradle build. Maven Central and `services.gradle.org` *are* reachable, which is not sufficient on its own.
 - There is no `/dev/kvm` and no virtualization CPU flags, so **the Android emulator cannot run** — this one is hardware, not policy.
 - Consequence: native verification has to happen in CI (`android-build.yml`), and nothing here can run the app. Don't burn time trying to install the SDK.
 - `npm run bundle` *does* work locally and is the strongest local check available.
