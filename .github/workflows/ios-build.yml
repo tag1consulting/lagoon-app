@@ -28,10 +28,11 @@ concurrency:
 jobs:
   simulator-build:
     runs-on: macos-latest
-    # Unmeasured — no run of this workflow has completed yet, so this is a
-    # starting guess, not a measured figure like android-build.yml's 45.
-    # Adjust once a real duration is known.
-    timeout-minutes: 45
+    # First real run (2026-08-18) took ~3.5 minutes cold, well under
+    # android-build.yml's 25-minute Gradle build — a simulator build with no
+    # code signing and one scheme is much lighter. Generous headroom kept
+    # here anyway in case CocoaPods/Xcode caching behaves differently later.
+    timeout-minutes: 20
     steps:
       # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/checkout@v7
@@ -87,6 +88,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ios-simulator-app
-          path: ios/build/Build/Products/Release-iphonesimulator/*.app
+          # CocoaPods sets a per-target CONFIGURATION_BUILD_DIR, so the .app
+          # lands nested under a directory named after the scheme (observed:
+          # Release-iphonesimulator/EXApplication/EXApplication.app), not
+          # directly under Release-iphonesimulator/ — hence the recursive glob.
+          path: ios/build/Build/Products/Release-iphonesimulator/**/*.app
           if-no-files-found: error
           retention-days: 14
