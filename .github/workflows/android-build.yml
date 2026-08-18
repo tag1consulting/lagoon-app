@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 45
     steps:
       # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # On a release event, checkout defaults to the tag ref already —
           # explicit for clarity, since the built APK must match the tagged
