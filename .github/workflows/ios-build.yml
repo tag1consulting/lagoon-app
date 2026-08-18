@@ -61,7 +61,14 @@ jobs:
         working-directory: ios
         run: |
           SCHEME=$(xcodebuild -list -json -workspace *.xcworkspace \
-            | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).workspace.schemes[0])")
+            | node -e "
+                const schemes = JSON.parse(require('fs').readFileSync(0, 'utf8')).workspace.schemes;
+                if (!schemes || schemes.length === 0) {
+                  console.error('No schemes found in the generated workspace');
+                  process.exit(1);
+                }
+                console.log(schemes[0]);
+              ")
           echo "name=$SCHEME" >> "$GITHUB_OUTPUT"
 
       - name: Build for iOS Simulator (unsigned)
