@@ -8,7 +8,12 @@
 # Expo template signs release with the debug keystore, so no secrets are
 # needed — fine for internal testing, not for Play Store distribution.
 #
-# Runs on pull requests rather than every push because it costs ~25 minutes.
+# Two triggers, one job:
+# - pull_request: costs ~25 minutes, so it doesn't run on every push.
+# - release (published): `gh release create`/publishing a draft fires this,
+#   and the build attaches its APK straight onto that release — the whole
+#   reason the APK is a Checkpoint Trigger's release asset instead of a
+#   time-limited Actions artifact you'd have to remember to grab in time.
 #
 # Actions are referenced by floating major tag rather than pinned SHA, so the
 # mutable-action-tag lint is suppressed per line. See ci.yml for the rationale.
@@ -16,11 +21,17 @@ name: Android build
 
 on:
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 
-# A newer commit supersedes an in-flight build.
+permissions:
+  contents: write # only release runs need this, to upload the release asset
+
+# A newer commit supersedes an in-flight build. Scoped so a release build
+# never gets cancelled by an unrelated PR build sharing the same ref.
 concurrency:
-  group: android-build-${{ github.ref }}
+  group: android-build-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -32,6 +43,11 @@ jobs:
     steps:
       # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/checkout@v4
+        with:
+          # On a release event, checkout defaults to the tag ref already —
+          # explicit for clarity, since the built APK must match the tagged
+          # commit exactly, not whatever main has moved to since.
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.sha }}
 
       # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/setup-node@v4
@@ -66,3 +82,16 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+      # Only on a release event: attach the same APK to the release page
+      # itself, so it's discoverable without digging through Actions runs and
+      # doesn't expire like a workflow artifact does.
+      - name: Attach APK to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$TAG_NAME" \
+            android/app/build/outputs/apk/release/app-release.apk \
+            --clobber
