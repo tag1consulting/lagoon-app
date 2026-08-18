@@ -28,13 +28,14 @@ npm start              # Metro only, once a dev client is installed
 ## Checks
 
 ```bash
+npm run compat:check    # ungated GraphQL operations must work on Lagoon 2.8
 npm run lint
 npm run typecheck
 npm test
 npm run bundle          # Metro/Hermes export — catches what tsc can't
 ```
 
-CI runs `codegen:check`, `lint`, `typecheck`, `test`, and `bundle` on every push. None of these exercise native modules — only a real Gradle/Xcode build does. See [Verification Status](verification-status) for what has actually been confirmed on a device.
+CI runs `codegen:check`, `compat:check`, `lint`, `typecheck`, `test`, and `bundle` on every push. None of these exercise native modules — only a real Gradle/Xcode build does. See [Verification Status](verification-status) for what has actually been confirmed on a device.
 
 ## GraphQL schema
 
