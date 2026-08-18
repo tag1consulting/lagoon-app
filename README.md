@@ -56,7 +56,7 @@ A manual GitHub Actions workflow (`EAS Build`) triggers cloud builds; it needs a
 
 The **Android build** workflow (`.github/workflows/android-build.yml`) runs on every pull request and attaches an `app-release-apk` artifact — download it from the workflow run page, unzip, transfer `app-release.apk` to the phone, and install it (Android will ask you to allow installs from that source). PR artifacts expire after 14 days.
 
-For a durable copy, every [GitHub release](https://github.com/gchaix/lagoon-app/releases) has the same APK attached directly to the release page, built fresh from the tagged commit (the `release: [published]` trigger on the same workflow) — that copy doesn't expire. Publishing a release (`gh release create vX.Y.Z ...` or via the GitHub UI) triggers the build and attaches the APK automatically; nothing extra to run.
+For a durable copy, every [GitHub release](https://github.com/tag1consulting/lagoon-app/releases) has the same APK attached directly to the release page, built fresh from the tagged commit (the `release: [published]` trigger on the same workflow) — that copy doesn't expire. Publishing a release (`gh release create vX.Y.Z ...` or via the GitHub UI) triggers the build and attaches the APK automatically; nothing extra to run.
 
 That APK is standalone — the JS bundle is embedded, so it launches straight into the app.
 
