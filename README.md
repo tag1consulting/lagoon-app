@@ -4,6 +4,10 @@ A mobile client for the [Lagoon](https://github.com/uselagoon/lagoon) applicatio
 
 Android-first; iOS builds from the same codebase.
 
+## About this project
+
+This app was built through AI-assisted development with [Claude Code](https://claude.ai/code), Anthropic's coding agent, under human direction and review: a human developer set the architecture, reviewed the implementation, and directed testing, while Claude Code wrote and iterated on most of the code. It has been tested end-to-end against a live Lagoon instance from a physical Android device, covering login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs.
+
 ## Stack
 
 - [Expo](https://expo.dev) (managed workflow + dev client), [expo-router](https://docs.expo.dev/router/introduction/), TypeScript (strict)

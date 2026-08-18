@@ -134,9 +134,9 @@ Large parts of the Lagoon API are intentionally unused so far — backups/restor
 
 ## Verification status
 
-The app has **never been exercised end-to-end against a live Lagoon**. CI is green and a release APK installs and runs, but browsing, deploys, tasks, and log streaming are all unverified against a real API. Treat any claim that a screen "works" as unproven until someone confirms it on a device.
+The app has been exercised end-to-end against a live Lagoon instance from a physical Android device: OIDC login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs have all been confirmed working. CI is green and a release APK installs and runs on real hardware.
 
-Known-good so far: context add/edit persists, and the PKCE flow reaches a real Keycloak (it got as far as being rejected for its redirect URI).
+Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth fallback, and anything outside V1 scope (backups/restores, environment variable management, insights, problems, organization/user/group administration).
 
 ## Working in the Claude Code web/remote sandbox
 
