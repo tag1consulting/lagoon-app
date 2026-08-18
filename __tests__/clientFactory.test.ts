@@ -30,7 +30,7 @@ describe('registerClientCleanup', () => {
   });
 
   it('clears a cached lagoonVersion when the endpoint is retargeted', () => {
-    const ctx = useContextsStore.getState().addContext(makeInput('sbs'));
+    const ctx = useContextsStore.getState().addContext(makeInput('acme'));
     useContextsStore.getState().updateContext(ctx.id, { lagoonVersion: '2.20.0' });
     expect(useContextsStore.getState().contexts[0].lagoonVersion).toBe('2.20.0');
 
@@ -42,7 +42,7 @@ describe('registerClientCleanup', () => {
   });
 
   it('does not touch lagoonVersion for edits unrelated to the endpoint', () => {
-    const ctx = useContextsStore.getState().addContext(makeInput('sbs'));
+    const ctx = useContextsStore.getState().addContext(makeInput('acme'));
     useContextsStore.getState().updateContext(ctx.id, { lagoonVersion: '2.20.0' });
 
     useContextsStore.getState().updateContext(ctx.id, { keycloakClientId: 'lagoon-mobile' });

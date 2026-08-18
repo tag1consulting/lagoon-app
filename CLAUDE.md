@@ -71,7 +71,7 @@ The app sends exactly `lagoonmobile://auth` (from `makeRedirectUri` in `src/auth
 
 The subtlety that shaped the code: **Keycloak renders that error on its own page and never redirects back**, so `promptAsync` returns a plain `dismiss` — indistinguishable from the user closing the browser. There is no `error` result to detect. `loginWithOidc` therefore treats *any* dismissal as a possible redirect-URI problem and surfaces the guidance panel, which prints the exact redirect URI with tap-to-copy. Do not "fix" that by hiding the panel on cancel; a genuine cancel simply ignores it.
 
-**Preferred fix: a dedicated public client.** Register one per instance (e.g. `lagoon-mobile`: standard flow on, public, valid redirect URIs `lagoonmobile://*`) and set it as the context's `keycloakClientId`. No rebuild needed, and the web dashboard's client is untouched. This is what SBS does, managed with the `pulumi_keycloak` provider against the existing realm.
+**Preferred fix: a dedicated public client.** Register one per instance (e.g. `lagoon-mobile`: standard flow on, public, valid redirect URIs `lagoonmobile://*`) and set it as the context's `keycloakClientId`. No rebuild needed, and the web dashboard's client is untouched. This is what the reference instance (`Acme`, this project's primary target) does, managed with the `pulumi_keycloak` provider against the existing realm.
 
 **The app tries this convention automatically.** `loginWithOidc` (`src/auth/authManager.ts`) only does this when `keycloakClientId` is still the default `lagoon-ui` — if the user has set anything else on purpose, that value is trusted and used exclusively. On a default context, a redirect-URI rejection triggers one silent retry against `lagoon-mobile` before the manual guidance panel appears; a successful client id is persisted onto the context so later token refreshes (which read `context.keycloakClientId` directly, not this fallback list) keep working. The trade-off: a genuine user cancel on a stock instance also reopens the browser once more against `lagoon-mobile` before giving up, since a cancel and a redirect-URI rejection are indistinguishable (see above) — bounded to exactly one extra attempt. An admin whose dedicated client uses a different name still needs to set `keycloakClientId` by hand; the guidance panel says so.
 
@@ -89,7 +89,7 @@ Keep field selections conservative so older Lagoon instances keep working. Newer
 
 #### The 2.8 floor and version-gated variants
 
-Lagoon rejects the *whole* query when it names one unknown field, so a newer field does not degrade — it blanks a screen. The primary target instance (SBS) runs **2.8.0**, which is the floor.
+Lagoon rejects the *whole* query when it names one unknown field, so a newer field does not degrade — it blanks a screen. The primary target instance (`Acme`) runs **2.8.0**, which is the floor.
 
 Two schemas are vendored: `graphql/schema.graphql` (from `main`, drives codegen) and `graphql/schema-2.8.graphql` (the floor). `npm run compat:check` — wired into CI — validates every operation against the floor, **except** operations whose name ends in `Detailed`, which are checked against the current schema instead.
 

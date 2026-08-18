@@ -80,7 +80,7 @@ export function ContextForm({
     >
       <Field
         label="Name"
-        placeholder="SBS"
+        placeholder="Acme"
         value={name}
         onChangeText={setName}
         autoFocus={!initial}

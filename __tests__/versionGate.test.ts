@@ -19,8 +19,8 @@ describe('hasFeature', () => {
   });
 
   describe('document-variant gates', () => {
-    // SBS runs 2.8.0 and must never be sent a post-2.8 field: Lagoon rejects
-    // the whole query, so a false positive here blanks an entire screen.
+    // The 2.8 floor instance must never be sent a post-2.8 field: Lagoon
+    // rejects the whole query, so a false positive here blanks an entire screen.
     const documentFeatures = [
       'deploymentDetails',
       'taskDetails',

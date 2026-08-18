@@ -64,7 +64,7 @@ That APK is standalone — the JS bundle is embedded, so it launches straight in
 
 ## Connecting to a Lagoon instance
 
-On first launch the app goes straight to **Add context**. Give it a name (e.g. `SBS`) and the instance's GraphQL endpoint (e.g. `https://api.example.com/graphql` — a bare host works too, `/graphql` is appended). Keycloak and UI URLs are derived as `keycloak.<host>` and `ui.<host>`, both editable if the instance differs. Save, then sign in.
+On first launch the app goes straight to **Add context**. Give it a name (e.g. `Acme`) and the instance's GraphQL endpoint (e.g. `https://api.example.com/graphql` — a bare host works too, `/graphql` is appended). Keycloak and UI URLs are derived as `keycloak.<host>` and `ui.<host>`, both editable if the instance differs. Save, then sign in.
 
 Add more contexts from the same screen; the header shows the current one and taps through to switch.
 

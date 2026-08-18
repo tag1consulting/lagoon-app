@@ -2,7 +2,7 @@ export type AuthMode = 'oidc' | 'static-token';
 
 export interface LagoonContext {
   id: string;
-  /** Display name, e.g. "SBS" or "amazee.io" */
+  /** Display name, e.g. "Acme" or "amazee.io" */
   name: string;
   /** Full GraphQL endpoint, e.g. https://api.example.com/graphql */
   graphqlUrl: string;

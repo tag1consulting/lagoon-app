@@ -6,7 +6,7 @@ import {
 
 describe('normalizeGraphqlUrl', () => {
   it('adds https and /graphql to a bare host', () => {
-    expect(normalizeGraphqlUrl('api.sbs.example.com')).toBe('https://api.sbs.example.com/graphql');
+    expect(normalizeGraphqlUrl('api.acme.example.com')).toBe('https://api.acme.example.com/graphql');
   });
 
   it('keeps an explicit path', () => {
