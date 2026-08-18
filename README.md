@@ -24,7 +24,7 @@ This app was built through AI-assisted development with [Claude Code](https://cl
 ```bash
 npm install
 npm run android        # build & launch dev client on Android (needs Android SDK)
-# or: eas build --profile development --platform android
+npm run ios            # build & launch dev client on iOS (needs a Mac with Xcode)
 npm start              # Metro only, once a dev client is installed
 ```
 
@@ -53,15 +53,39 @@ Typed documents live in `src/graphql/documents/*.graphql`; generated output is c
 
 ## Builds
 
-EAS profiles in `eas.json`:
+All builds are native (Gradle / Xcode) — there's no cloud build service involved. `android/` and `ios/` aren't committed (continuous native generation via `expo prebuild`), so they're regenerated from `app.config.ts` before every build.
 
-- `development` — dev client, internal distribution
-- `preview` — release APK for internal hand-off: `eas build --profile preview --platform android`
-- `production` — AAB (Play Store), auto-incrementing version
+### Android
 
-iOS: `eas build --profile preview --platform ios` once Apple credentials are configured in EAS. There is no iOS-specific code — the URL scheme and auth-session browser behavior come from the shared Expo config.
+```bash
+npx expo prebuild --platform android --no-install
+cd android && ./gradlew assembleRelease
+# APK: android/app/build/outputs/apk/release/app-release.apk
+```
 
-A manual GitHub Actions workflow (`EAS Build`) triggers cloud builds; it needs an `EXPO_TOKEN` repository secret (create one at https://expo.dev/settings/access-tokens).
+This is exactly what `.github/workflows/android-build.yml` runs in CI. Play Store distribution needs an AAB instead (`./gradlew bundleRelease`) and a real signing key — CI's debug-keystore signature is fine for sideloading, not for the Play Store.
+
+### iOS
+
+Needs a Mac with Xcode and the Command Line Tools installed.
+
+```bash
+npm install
+npm run ios              # Debug dev-client build, runs on the first booted simulator
+npm run ios -- -d        # prompts to pick a physical device instead
+```
+
+For a Release build without installing (build-only, unsigned):
+
+```bash
+npx expo run:ios --configuration Release --device generic --output ./build
+```
+
+An installable, signed build (a real device beyond your own, TestFlight, or the App Store) needs Xcode's own signing flow: run `npx expo prebuild --platform ios`, open `ios/*.xcworkspace` in Xcode, set your Apple Developer team under **Signing & Capabilities**, then **Product → Archive** and distribute from the Organizer. A physical-device install for personal testing works with a free Apple ID; TestFlight/App Store distribution needs a paid Apple Developer Program membership ($99/year) — that requirement comes from Apple, not from any build tooling choice.
+
+There is no iOS-specific app code — the URL scheme and auth-session browser behavior come from the shared Expo config in `app.config.ts`.
+
+A manual-only (`workflow_dispatch`) `iOS build (simulator, unsigned)` workflow builds the native Xcode project on a GitHub-hosted macOS runner and uploads the resulting `.app` as a workflow artifact — it validates the native build compiles, same as `android-build.yml` does for Android, but produces a Simulator-only binary that isn't installable on a real device or distributable anywhere. It does not run automatically on push or release (macOS runner minutes cost roughly 10x Linux and share the org's Actions-minutes pool), and there's no code signing set up yet for anything beyond that.
 
 ## Installing a build on a phone
 
