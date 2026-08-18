@@ -89,9 +89,12 @@ jobs:
         with:
           name: ios-simulator-app
           # CocoaPods sets a per-target CONFIGURATION_BUILD_DIR, so the .app
-          # lands nested under a directory named after the scheme (observed:
-          # Release-iphonesimulator/EXApplication/EXApplication.app), not
-          # directly under Release-iphonesimulator/ — hence the recursive glob.
-          path: ios/build/Build/Products/Release-iphonesimulator/**/*.app
+          # lands nested under a directory named after the scheme, and the
+          # bundle itself is named after the scheme too (observed:
+          # Release-iphonesimulator/EXApplication/EXApplication.app). A
+          # Release-iphonesimulator/**/*.app glob did NOT match this (two
+          # consecutive real runs failed here), so this builds the path
+          # directly from the scheme name instead of globbing for it.
+          path: ios/build/Build/Products/Release-iphonesimulator/${{ steps.scheme.outputs.name }}/${{ steps.scheme.outputs.name }}.app
           if-no-files-found: error
           retention-days: 14
