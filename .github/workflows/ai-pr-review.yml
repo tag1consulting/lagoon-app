@@ -42,7 +42,7 @@ jobs:
 
       # The review container looks for node_modules/.bin/eslint and skips the
       # eslint analyzer when it is absent, so install dependencies first.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
