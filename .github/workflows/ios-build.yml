@@ -85,7 +85,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ios-simulator-app
           # CocoaPods sets a per-target CONFIGURATION_BUILD_DIR, so the .app
