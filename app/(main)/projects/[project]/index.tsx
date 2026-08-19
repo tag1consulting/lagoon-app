@@ -83,7 +83,23 @@ export default function ProjectScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: project ?? 'Project' }} />
+      <Stack.Screen
+        options={{
+          title: project ?? 'Project',
+          headerRight: () => (
+            <Link
+              href={{
+                pathname: '/(main)/projects/[project]/variables',
+                params: { project: project ?? '', projectId: String(proj?.id ?? 0) },
+              }}
+            >
+              <Text style={{ color: theme.primary, fontSize: 16, fontWeight: '600' }}>
+                Variables
+              </Text>
+            </Link>
+          ),
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void refetch()} />}

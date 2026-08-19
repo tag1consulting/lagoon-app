@@ -20,6 +20,17 @@ subscription TaskChanged($environment: Int!) {
   }
 }
 
+subscription BackupChanged($environment: Int!) {
+  backupChanged(environment: $environment) {
+    id
+    backupId
+    restore {
+      id
+      status
+    }
+  }
+}
+
 # --- Version-gated variant --------------------------------------------------
 
 subscription DeploymentChangedDetailed($environment: Int!) {

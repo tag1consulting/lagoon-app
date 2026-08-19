@@ -42,6 +42,12 @@ Two rules shape most of the deployment/task code:
 
 Log rendering handles the size deliberately: text is tokenized off the interaction path, only the newest slice of lines is rendered at a time, and ANSI color codes are interpreted by a small hand-rolled parser rather than a general-purpose terminal emulator.
 
+## Backups, restore, and environment variables
+
+Backups are browse-and-restore only: `addBackup`/`updateRestore` exist in Lagoon's schema, but they're for the backup agent to register that a backup already happened, not a "trigger a backup now" action, so the app never creates backups. Restoring overwrites live environment data, so it goes through the same `ConfirmSheet` destructive-confirmation pattern as every other mutating action. Deleting a backup record and (on Lagoon ≥2.29) downloading a backup's file link are the other two actions on each row.
+
+Environment variables are two genuinely separate lists in Lagoon's API (`Project.envVariables` and `Environment.envVariables`, not merged), so the app has two screens: a project-level one reached from a header link, and an environment-level tab. Values are returned in plaintext by the API — `EnvKeyValue.value` is a normal queryable field, not write-only — so the app masks them client-side (dots, tap to reveal) since they hold secrets in practice even though the API doesn't enforce that. Writes prefer the modern `addOrUpdateEnvVariableByName`/`deleteEnvVariableByName` mutations (Lagoon ≥2.11), falling back to the deprecated by-id `addEnvVariable`/`deleteEnvVariable` pair on 2.8-2.10, where the by-name API doesn't exist yet.
+
 ## Scope
 
-V1 is deliberately "monitor + operate": browse projects/environments, watch deployments and tasks with logs, deploy the latest build, cancel a deployment, invoke a registered task, and run a raw task. Backups/restores, environment variable management, insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, and organization/user/group administration are all intentionally out of scope for now.
+V1 is deliberately "monitor + operate": browse projects/environments, watch deployments and tasks with logs, deploy the latest build, cancel a deployment, invoke a registered task, run a raw task, browse backups and trigger restores, and manage project/environment variables. Insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, and organization/user/group administration are all intentionally out of scope for now.

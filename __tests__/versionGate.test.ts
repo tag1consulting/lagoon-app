@@ -52,4 +52,24 @@ describe('hasFeature', () => {
     expect(hasFeature({ lagoonVersion: '2.30.0' }, 'serviceReplicas')).toBe(false);
     expect(hasFeature({ lagoonVersion: '2.33.0' }, 'serviceReplicas')).toBe(true);
   });
+
+  describe('exactly-pinned thresholds (env variables, backups)', () => {
+    // Unlike the coarse-sampled thresholds above, these three were checked
+    // against every minor release around the boundary, so the just-below
+    // version is the true last-absent release, not a safety margin.
+    it('envVariablesByName: absent at 2.10.0, present at 2.11.0', () => {
+      expect(hasFeature({ lagoonVersion: '2.10.0' }, 'envVariablesByName')).toBe(false);
+      expect(hasFeature({ lagoonVersion: '2.11.0' }, 'envVariablesByName')).toBe(true);
+    });
+
+    it('backupDownloadLink: absent at 2.28.0, present at 2.29.0', () => {
+      expect(hasFeature({ lagoonVersion: '2.28.0' }, 'backupDownloadLink')).toBe(false);
+      expect(hasFeature({ lagoonVersion: '2.29.0' }, 'backupDownloadLink')).toBe(true);
+    });
+
+    it('restoreDeletion: absent at 2.29.2, present at 2.30.0', () => {
+      expect(hasFeature({ lagoonVersion: '2.29.2' }, 'restoreDeletion')).toBe(false);
+      expect(hasFeature({ lagoonVersion: '2.30.0' }, 'restoreDeletion')).toBe(true);
+    });
+  });
 });

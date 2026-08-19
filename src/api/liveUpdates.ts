@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 import { hasFeature } from '@/api/versionGate';
 import { useActiveContext } from '@/contexts/store';
 import {
+  BackupChangedDocument,
   DeploymentChangedDetailedDocument,
   DeploymentChangedDocument,
   TaskChangedDocument,
@@ -61,6 +62,23 @@ export function useTaskEvents(
     onError: (error) => {
       // Non-fatal: polling remains the fallback. See useDeploymentEvents.
       console.warn('[liveUpdates] task subscription error', error);
+    },
+  });
+}
+
+/** Live restore-status events for an environment; same contract as deployments. */
+export function useBackupEvents(
+  environmentId: number | null | undefined,
+  onEvent: () => void,
+): void {
+  const active = useAppStateActive();
+  useSubscription(BackupChangedDocument, {
+    variables: { environment: environmentId ?? 0 },
+    skip: !environmentId || !active,
+    onData: () => onEvent(),
+    onError: (error) => {
+      // Non-fatal: polling remains the fallback. See useDeploymentEvents.
+      console.warn('[liveUpdates] backup subscription error', error);
     },
   });
 }

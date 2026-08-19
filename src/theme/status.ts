@@ -4,6 +4,7 @@ const STATUS_COLORS: Record<string, string> = {
   complete: '#30a46c',
   completed: '#30a46c',
   succeeded: '#30a46c',
+  successful: '#30a46c',
   active: '#30a46c',
   running: '#3b82f6',
   new: '#b58a00',
