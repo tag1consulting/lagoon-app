@@ -24,6 +24,9 @@ export function SegmentedControl<T extends string>({
             style={[styles.segment, active && { backgroundColor: theme.primary }]}
           >
             <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
               style={{
                 color: active ? '#ffffff' : theme.textMuted,
                 fontWeight: '600',
@@ -52,6 +55,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 9,
     flex: 1,
+    paddingHorizontal: 2,
     paddingVertical: spacing.sm,
   },
 });

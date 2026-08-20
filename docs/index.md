@@ -5,7 +5,7 @@ nav_exclude: true
 permalink: /
 render_with_liquid: false
 hero_title: Lagoon Mobile
-hero_tagline: "A mobile client for the Lagoon application delivery platform. Browse projects and environments, watch deployments and tasks with their build logs, trigger deploys, restore backups, and manage variables — across multiple Lagoon instances."
+hero_tagline: "A mobile client for the Lagoon application delivery platform. Browse projects and environments, watch deployments and tasks with their build logs, trigger deploys, retrieve backups, and manage variables — across multiple Lagoon instances."
 ---
 
 <div class="features">
@@ -29,7 +29,7 @@ hero_tagline: "A mobile client for the Lagoon application delivery platform. Bro
 
 ## What it does
 
-Lagoon Mobile is a monitor-and-operate client for [Lagoon](https://github.com/uselagoon/lagoon): browse projects and environments, watch deployments and tasks with their build logs, trigger `deployEnvironmentLatest`, `cancelDeployment`, `invokeRegisteredTask`, and raw `addTask`, browse backups and trigger a restore, and manage project- and environment-scoped variables — all scoped to whichever Lagoon instance you're currently connected to. Android-first, with iOS builds from the same codebase.
+Lagoon Mobile is a monitor-and-operate client for [Lagoon](https://github.com/uselagoon/lagoon): browse projects and environments, watch deployments and tasks with their build logs, trigger `deployEnvironmentLatest`, `cancelDeployment`, `invokeRegisteredTask`, and raw `addTask`, browse backups and trigger a retrieval, and manage project- and environment-scoped variables — all scoped to whichever Lagoon instance you're currently connected to. Android-first, with iOS builds from the same codebase.
 
 ## Quick start
 

@@ -20,27 +20,32 @@ export interface BackupSummary {
 
 /**
  * No detail route: unlike deployments/tasks there's no log to view, so
- * tapping the summary line goes straight to the parent's restore
+ * tapping the summary line goes straight to the parent's retrieve
  * confirmation. Delete/download are separate touch targets below rather
  * than nested inside that same Pressable.
+ *
+ * Lagoon cannot restore a backup into a live environment automatically —
+ * "retrieving" a backup only makes its files available to download; the
+ * user applies them manually. Download only works once retrieval has
+ * completed, so the parent only passes onDownload when that's true.
  */
 export function BackupRow({
   backup,
-  onRestore,
+  onRetrieve,
   onDelete,
   onDownload,
 }: {
   backup: BackupSummary;
-  onRestore: () => void;
+  onRetrieve: () => void;
   onDelete: () => void;
-  /** Omit to hide the action (e.g. instance doesn't support backupDownloadLink). */
+  /** Omit until this backup has a completed retrieval (or the instance doesn't support backupDownloadLink). */
   onDownload?: () => void;
 }) {
   const theme = useTheme();
 
   return (
     <View style={[styles.row, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <Pressable accessibilityRole="button" onPress={onRestore} style={styles.summary}>
+      <Pressable accessibilityRole="button" onPress={onRetrieve} style={styles.summary}>
         <View style={styles.header}>
           <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
             {backup.created ?? backup.backupId}

@@ -116,17 +116,19 @@ Two rules that shape most of the deployment/task code:
 
 ### Implemented scope
 
-V1 is deliberately "monitor + operate": browse projects/environments, watch deployments and tasks with logs, `deployEnvironmentLatest`, `cancelDeployment`, `invokeRegisteredTask`, raw `addTask`, backup browsing and restore (`addRestore`, `deleteBackup`), and project/environment variable management (`addOrUpdateEnvVariableByName`/`deleteEnvVariableByName` on Lagoon ≥2.11, falling back to the deprecated by-id `addEnvVariable`/`deleteEnvVariable` on 2.8-2.10). `src/graphql/documents/` is the complete list of operations the app issues.
+V1 is deliberately "monitor + operate": browse projects/environments, watch deployments and tasks with logs, `deployEnvironmentLatest`, `cancelDeployment`, `invokeRegisteredTask`, raw `addTask`, backup browsing and retrieval (`addRestore`, `deleteBackup`), and project/environment variable management (`addOrUpdateEnvVariableByName`/`deleteEnvVariableByName` on Lagoon ≥2.11, falling back to the deprecated by-id `addEnvVariable`/`deleteEnvVariable` on 2.8-2.10). `src/graphql/documents/` is the complete list of operations the app issues.
 
 Large parts of the Lagoon API are still intentionally unused — insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, and all organization/user/group administration. The vendored schema already covers them, so adding one is a matter of writing the document and screen; check `versionGate.ts` first for anything added after Lagoon 2.27.
 
-#### Backups, restore, and environment variables
+#### Backups, retrieval, and environment variables
 
-`addBackup`/`updateRestore` exist in the schema but are for the backup agent to register that a backup already happened — there is no "trigger a backup now" mutation, so the app only browses backups and triggers restores, never creates backups.
+`addBackup`/`updateRestore` exist in the schema but are for the backup agent to register that a backup already happened — there is no "trigger a backup now" mutation, so the app only browses backups and triggers retrievals, never creates backups.
+
+**"Retrieve" (`addRestore` with `execute: true`), not "restore."** Per Lagoon's own docs, Lagoon cannot automatically restore a backup into a live environment — retrieving a backup only makes its files available to download; the user applies them manually (e.g. by copying them onto the environment over SSH). The UI's confirm sheet and copy reflect this (non-destructive, no environment-overwrite framing) even though the underlying mutation is still named `addRestore` and the returned object is still a `Restore`. The Download action only appears once that backup's `restore.status` is `SUCCESSFUL` — before that, there's nothing to download, and the API's own error message ("no restore file available") is the correct signal for a not-yet-retrieved backup, not an app bug.
 
 Env variable values are returned in plaintext by the API (`EnvKeyValue.value` is a normal queryable field, not write-only) — the app masks them client-side (dots, tap to reveal) since they hold secrets in practice even though the API doesn't enforce that. Project-scoped and environment-scoped variables are two separate lists (`Project.envVariables` / `Environment.envVariables`), not merged; the app exposes both as separate screens.
 
-`getBackupDownloadLinkByBackupId` (≥2.29) is version-gated and the Download action is simply absent on older instances. `deleteRestore` (≥2.30, measured but no document selects it yet, same as `Deployment.buildType`/`EnvironmentService.replicas`) is reserved in `versionGate.ts` for a possible future "clear restore record" action, not currently wired to anything.
+`getBackupDownloadLinkByBackupId` (≥2.29) is version-gated and the Download action is simply absent on older instances. `deleteRestore` (≥2.30, measured but no document selects it yet, same as `Deployment.buildType`/`EnvironmentService.replicas`) is reserved in `versionGate.ts` for a possible future "clear retrieval record" action, not currently wired to anything.
 
 ### Runtime gotcha
 
@@ -144,7 +146,7 @@ Env variable values are returned in plaintext by the API (`EnvKeyValue.value` is
 
 The app has been exercised end-to-end against a live Lagoon instance from a physical Android device: OIDC login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs have all been confirmed working. CI is green and a release APK installs and runs on real hardware.
 
-Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth fallback, backups/restore and environment variable management (implemented, but not yet exercised against a live instance from a device), and anything outside V1 scope (insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, organization/user/group administration).
+Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth fallback, backups/retrieval and environment variable management (implemented; a device test against a live instance surfaced a backup-retrieval UX bug, now fixed, so this area is not yet re-confirmed), and anything outside V1 scope (insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, organization/user/group administration).
 
 ## Working in the Claude Code web/remote sandbox
 
