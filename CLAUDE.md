@@ -144,7 +144,7 @@ Env variable values are returned in plaintext by the API (`EnvKeyValue.value` is
 
 The app has been exercised end-to-end against a live Lagoon instance from a physical Android device: OIDC login, browsing projects/environments, triggering and cancelling deployments, running tasks, and viewing build/task logs have all been confirmed working. CI is green and a release APK installs and runs on real hardware.
 
-Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth fallback, and anything outside V1 scope (backups/restores, environment variable management, insights, problems, organization/user/group administration).
+Not yet confirmed: iOS (all testing so far is Android), the `static-token` auth fallback, backups/restore and environment variable management (implemented, but not yet exercised against a live instance from a device), and anything outside V1 scope (insights, problems, fact search, idle/unidle, per-service stop/start, project cloning, organization/user/group administration).
 
 ## Working in the Claude Code web/remote sandbox
 

@@ -3,7 +3,7 @@ import type { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: 'Lagoon Mobile',
   slug: 'lagoon-mobile',
-  version: '0.1.0',
+  version: '0.2.0',
   scheme: 'lagoonmobile',
   orientation: 'portrait',
   icon: './assets/icon.png',
