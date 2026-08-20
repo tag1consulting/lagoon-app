@@ -5,7 +5,7 @@ import { getDefaultRedirectUri } from '@/auth/pkce';
 import { Button, Field } from '@/components/ui';
 import type { LagoonContext, LagoonContextInput } from '@/contexts/types';
 import { DEFAULT_KEYCLOAK_CLIENT_ID, DEFAULT_KEYCLOAK_REALM } from '@/contexts/types';
-import { deriveUrls, normalizeGraphqlUrl } from '@/contexts/urlDerivation';
+import { deriveUrls, isInsecureUrl, normalizeGraphqlUrl } from '@/contexts/urlDerivation';
 import { spacing, useTheme } from '@/theme';
 
 export function ContextForm({
@@ -92,6 +92,12 @@ export function ContextForm({
         value={graphqlUrl}
         onChangeText={handleGraphqlChange}
       />
+      {normalizeGraphqlUrl(graphqlUrl) && isInsecureUrl(normalizeGraphqlUrl(graphqlUrl)!) ? (
+        <Text style={{ color: theme.danger, fontSize: 12 }}>
+          This URL uses http:// — tokens and credentials will cross the network unencrypted. Use
+          https:// unless you fully trust this network.
+        </Text>
+      ) : null}
       <Field
         label="Keycloak URL"
         placeholder="https://keycloak.example.com"

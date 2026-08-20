@@ -73,6 +73,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showRedirectHelp, setShowRedirectHelp] = useState(false);
   const [pastedToken, setPastedToken] = useState('');
+  const [tokenRevealed, setTokenRevealed] = useState(false);
 
   if (!context) {
     return <EmptyState title="No active context" body="Add a Lagoon context first." />;
@@ -146,10 +147,18 @@ export default function LoginScreen() {
             <Field
               label="API token"
               placeholder="eyJhbGciOi..."
-              multiline
+              secureTextEntry={!tokenRevealed}
               value={pastedToken}
               onChangeText={setPastedToken}
             />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setTokenRevealed((revealed) => !revealed)}
+            >
+              <Text style={{ color: theme.primary, fontSize: 12 }}>
+                {tokenRevealed ? 'Hide token' : 'Show token'}
+              </Text>
+            </Pressable>
             <Button
               title="Save token"
               onPress={handleTokenLogin}

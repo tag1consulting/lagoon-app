@@ -56,3 +56,12 @@ export function deriveUrls(graphqlUrl: string): DerivedUrls | null {
 export function keycloakIssuerUrl(keycloakBaseUrl: string, realm: string): string {
   return `${keycloakBaseUrl.replace(/\/+$/, '')}/auth/realms/${encodeURIComponent(realm)}`;
 }
+
+/** True if a URL is plain http:// — tokens and credentials would cross the network unencrypted. */
+export function isInsecureUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
