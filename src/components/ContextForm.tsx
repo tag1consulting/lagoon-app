@@ -34,6 +34,8 @@ export function ContextForm({
   const [keycloakTouched, setKeycloakTouched] = useState(Boolean(initial));
   const [uiTouched, setUiTouched] = useState(Boolean(initial));
   const [error, setError] = useState<string | null>(null);
+  const normalizedGraphqlUrl = normalizeGraphqlUrl(graphqlUrl);
+  const normalizedKeycloakUrl = normalizeGraphqlUrl(keycloakBaseUrl);
 
   const handleGraphqlChange = (value: string) => {
     setGraphqlUrl(value);
@@ -92,7 +94,7 @@ export function ContextForm({
         value={graphqlUrl}
         onChangeText={handleGraphqlChange}
       />
-      {normalizeGraphqlUrl(graphqlUrl) && isInsecureUrl(normalizeGraphqlUrl(graphqlUrl)!) ? (
+      {normalizedGraphqlUrl && isInsecureUrl(normalizedGraphqlUrl) ? (
         <Text style={{ color: theme.danger, fontSize: 12 }}>
           This URL uses http:// — tokens and credentials will cross the network unencrypted. Use
           https:// unless you fully trust this network.
@@ -109,6 +111,12 @@ export function ContextForm({
           setKeycloakBaseUrl(v);
         }}
       />
+      {normalizedKeycloakUrl && isInsecureUrl(normalizedKeycloakUrl) ? (
+        <Text style={{ color: theme.danger, fontSize: 12 }}>
+          This URL uses http:// — the OIDC sign-in exchange will cross the network unencrypted.
+          Use https:// unless you fully trust this network.
+        </Text>
+      ) : null}
       <Field
         label="Keycloak client ID"
         placeholder={DEFAULT_KEYCLOAK_CLIENT_ID}
