@@ -5,7 +5,7 @@ import { getDefaultRedirectUri } from '@/auth/pkce';
 import { Button, Field } from '@/components/ui';
 import type { LagoonContext, LagoonContextInput } from '@/contexts/types';
 import { DEFAULT_KEYCLOAK_CLIENT_ID, DEFAULT_KEYCLOAK_REALM } from '@/contexts/types';
-import { deriveUrls, normalizeGraphqlUrl } from '@/contexts/urlDerivation';
+import { deriveUrls, isInsecureUrl, normalizeGraphqlUrl } from '@/contexts/urlDerivation';
 import { spacing, useTheme } from '@/theme';
 
 export function ContextForm({
@@ -34,6 +34,8 @@ export function ContextForm({
   const [keycloakTouched, setKeycloakTouched] = useState(Boolean(initial));
   const [uiTouched, setUiTouched] = useState(Boolean(initial));
   const [error, setError] = useState<string | null>(null);
+  const normalizedGraphqlUrl = normalizeGraphqlUrl(graphqlUrl);
+  const normalizedKeycloakUrl = normalizeGraphqlUrl(keycloakBaseUrl);
 
   const handleGraphqlChange = (value: string) => {
     setGraphqlUrl(value);
@@ -92,6 +94,12 @@ export function ContextForm({
         value={graphqlUrl}
         onChangeText={handleGraphqlChange}
       />
+      {normalizedGraphqlUrl && isInsecureUrl(normalizedGraphqlUrl) ? (
+        <Text style={{ color: theme.danger, fontSize: 12 }}>
+          This URL uses http:// — tokens and credentials will cross the network unencrypted. Use
+          https:// unless you fully trust this network.
+        </Text>
+      ) : null}
       <Field
         label="Keycloak URL"
         placeholder="https://keycloak.example.com"
@@ -103,6 +111,12 @@ export function ContextForm({
           setKeycloakBaseUrl(v);
         }}
       />
+      {normalizedKeycloakUrl && isInsecureUrl(normalizedKeycloakUrl) ? (
+        <Text style={{ color: theme.danger, fontSize: 12 }}>
+          This URL uses http:// — the OIDC sign-in exchange will cross the network unencrypted.
+          Use https:// unless you fully trust this network.
+        </Text>
+      ) : null}
       <Field
         label="Keycloak client ID"
         placeholder={DEFAULT_KEYCLOAK_CLIENT_ID}
