@@ -241,23 +241,23 @@ function BackupsTab({ envName, projectId }: { envName: string; projectId: string
 
   const [selectedBackup, setSelectedBackup] = useState<BackupSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<BackupSummary | null>(null);
-  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [retrieveError, setRetrieveError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [triggerRestore, { loading: restoring }] = useMutation(TriggerRestoreDocument);
+  const [triggerRestore, { loading: retrieving }] = useMutation(TriggerRestoreDocument);
   const [deleteBackup, { loading: deleting }] = useMutation(DeleteBackupDocument);
   const [fetchDownloadLink] = useLazyQuery(DownloadBackupLinkDetailedDocument);
   const theme = useTheme();
   const canDownload = hasFeature(context ?? {}, 'backupDownloadLink');
 
-  const handleRestore = async () => {
+  const handleRetrieve = async () => {
     if (!selectedBackup?.backupId) return;
-    setRestoreError(null);
+    setRetrieveError(null);
     try {
       await triggerRestore({ variables: { backupId: selectedBackup.backupId } });
       setSelectedBackup(null);
       void refetch();
     } catch (e) {
-      setRestoreError(e instanceof Error ? e.message : 'Restore failed to start.');
+      setRetrieveError(e instanceof Error ? e.message : 'Retrieval failed to start.');
     }
   };
 
@@ -298,28 +298,31 @@ function BackupsTab({ envName, projectId }: { envName: string; projectId: string
         <BackupRow
           key={backup.id ?? backup.backupId}
           backup={backup}
-          onRestore={() => setSelectedBackup(backup)}
+          onRetrieve={() => setSelectedBackup(backup)}
           onDelete={() => setPendingDelete(backup)}
           onDownload={
-            canDownload && backup.backupId ? () => void handleDownload(backup.backupId!) : undefined
+            canDownload &&
+            backup.backupId &&
+            backup.restore?.status?.toUpperCase() === 'SUCCESSFUL'
+              ? () => void handleDownload(backup.backupId!)
+              : undefined
           }
         />
       ))}
 
       <ConfirmSheet
         visible={Boolean(selectedBackup)}
-        title="Restore this backup?"
-        message={`This overwrites the current data in ${envName} with the ${selectedBackup?.created ?? 'selected'} backup.`}
-        confirmLabel="Restore"
-        destructive
-        busy={restoring}
-        onConfirm={() => void handleRestore()}
+        title="Retrieve this backup?"
+        message={`Makes the ${selectedBackup?.created ?? 'selected'} backup available to download. Lagoon can't restore a backup into ${envName} automatically — once retrieval finishes, download it and apply it yourself.`}
+        confirmLabel="Retrieve"
+        busy={retrieving}
+        onConfirm={() => void handleRetrieve()}
         onDismiss={() => {
           setSelectedBackup(null);
-          setRestoreError(null);
+          setRetrieveError(null);
         }}
       >
-        {restoreError ? <Text style={{ color: theme.danger }}>{restoreError}</Text> : null}
+        {retrieveError ? <Text style={{ color: theme.danger }}>{retrieveError}</Text> : null}
       </ConfirmSheet>
 
       <ConfirmSheet

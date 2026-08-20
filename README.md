@@ -1,6 +1,6 @@
 # Lagoon Mobile
 
-A mobile client for the [Lagoon](https://github.com/uselagoon/lagoon) application delivery platform. Browse projects and environments, watch deployments and tasks (with build logs), trigger deployments/tasks, browse backups and restore them, and manage project/environment variables — across multiple Lagoon instances with a quick context switcher, mirroring `lagoon-cli`'s context model.
+A mobile client for the [Lagoon](https://github.com/uselagoon/lagoon) application delivery platform. Browse projects and environments, watch deployments and tasks (with build logs), trigger deployments/tasks, browse backups and retrieve them for download, and manage project/environment variables — across multiple Lagoon instances with a quick context switcher, mirroring `lagoon-cli`'s context model.
 
 Android-first; iOS builds from the same codebase.
 
