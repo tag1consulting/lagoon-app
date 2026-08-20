@@ -2,7 +2,7 @@ import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useBackupEvents, useDeploymentEvents, useTaskEvents } from '@/api/liveUpdates';
 import { hasFeature } from '@/api/versionGate';
@@ -242,6 +242,7 @@ function BackupsTab({ envName, projectId }: { envName: string; projectId: string
   const [selectedBackup, setSelectedBackup] = useState<BackupSummary | null>(null);
   const [pendingDelete, setPendingDelete] = useState<BackupSummary | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [triggerRestore, { loading: restoring }] = useMutation(TriggerRestoreDocument);
   const [deleteBackup, { loading: deleting }] = useMutation(DeleteBackupDocument);
   const [fetchDownloadLink] = useLazyQuery(DownloadBackupLinkDetailedDocument);
@@ -260,15 +261,30 @@ function BackupsTab({ envName, projectId }: { envName: string; projectId: string
     }
   };
 
-  const handleDelete = async (backupId: string) => {
-    await deleteBackup({ variables: { backupId } });
-    void refetch();
+  const handleDelete = async () => {
+    if (!pendingDelete?.backupId) return;
+    setDeleteError(null);
+    try {
+      await deleteBackup({ variables: { backupId: pendingDelete.backupId } });
+      setPendingDelete(null);
+      void refetch();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Could not delete backup.');
+    }
   };
 
   const handleDownload = async (backupId: string) => {
-    const result = await fetchDownloadLink({ variables: { backupId } });
-    const url = result.data?.getBackupDownloadLinkByBackupId;
-    if (url) await WebBrowser.openBrowserAsync(url);
+    try {
+      const result = await fetchDownloadLink({ variables: { backupId } });
+      const url = result.data?.getBackupDownloadLinkByBackupId;
+      if (!url) throw new Error('No download link is available for this backup.');
+      await WebBrowser.openBrowserAsync(url);
+    } catch (e) {
+      Alert.alert(
+        'Could not get download link',
+        e instanceof Error ? e.message : 'Something went wrong.',
+      );
+    }
   };
 
   if (error) return <EmptyState title="Could not load backups" body={error.message} />;
@@ -313,12 +329,14 @@ function BackupsTab({ envName, projectId }: { envName: string; projectId: string
         confirmLabel="Delete"
         destructive
         busy={deleting}
-        onConfirm={() => {
-          if (pendingDelete?.backupId) void handleDelete(pendingDelete.backupId);
+        onConfirm={() => void handleDelete()}
+        onDismiss={() => {
           setPendingDelete(null);
+          setDeleteError(null);
         }}
-        onDismiss={() => setPendingDelete(null)}
-      />
+      >
+        {deleteError ? <Text style={{ color: theme.danger }}>{deleteError}</Text> : null}
+      </ConfirmSheet>
     </View>
   );
 }

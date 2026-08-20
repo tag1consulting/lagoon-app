@@ -32,12 +32,13 @@ function EnvVariableRows({
   vars: EnvVar[];
   loading: boolean;
   onAdd: () => void;
-  onDelete: (v: EnvVar) => void;
+  onDelete: (v: EnvVar) => Promise<void>;
   deleting: boolean;
 }) {
   const theme = useTheme();
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<EnvVar | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const toggleRevealed = (name: string) => {
     setRevealed((prev) => {
@@ -89,11 +90,19 @@ function EnvVariableRows({
         destructive
         busy={deleting}
         onConfirm={() => {
-          if (pendingDelete) onDelete(pendingDelete);
-          setPendingDelete(null);
+          if (!pendingDelete) return;
+          setDeleteError(null);
+          onDelete(pendingDelete)
+            .then(() => setPendingDelete(null))
+            .catch((e) => setDeleteError(e instanceof Error ? e.message : 'Could not delete variable.'));
         }}
-        onDismiss={() => setPendingDelete(null)}
-      />
+        onDismiss={() => {
+          setPendingDelete(null);
+          setDeleteError(null);
+        }}
+      >
+        {deleteError ? <Text style={{ color: theme.danger }}>{deleteError}</Text> : null}
+      </ConfirmSheet>
     </View>
   );
 }
@@ -108,12 +117,12 @@ function useDeleteEnvVariable(projectName: string, environmentName?: string) {
 
   const remove = async (v: EnvVar) => {
     if (byName) {
-      if (!v.name) return;
+      if (!v.name) throw new Error('This variable has no name to delete by.');
       await deleteByName({
         variables: { name: v.name, project: projectName, environment: environmentName },
       });
     } else {
-      if (v.id == null) return;
+      if (v.id == null) throw new Error('This variable has no id to delete by.');
       await deleteById({ variables: { id: v.id } });
     }
   };
@@ -138,7 +147,7 @@ function ProjectPanel({ projectId, projectName }: { projectId: number; projectNa
         vars={vars}
         loading={loading}
         onAdd={() => setShowAdd(true)}
-        onDelete={(v) => void remove(v).then(() => void refetch())}
+        onDelete={(v) => remove(v).then(() => void refetch())}
         deleting={deleting}
       />
       <AddEnvVariableSheet
@@ -183,7 +192,7 @@ function EnvironmentPanel({
         vars={vars}
         loading={loading}
         onAdd={() => setShowAdd(true)}
-        onDelete={(v) => void remove(v).then(() => void refetch())}
+        onDelete={(v) => remove(v).then(() => void refetch())}
         deleting={deleting}
       />
       <AddEnvVariableSheet
