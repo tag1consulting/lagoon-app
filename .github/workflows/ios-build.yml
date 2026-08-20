@@ -54,24 +54,35 @@ jobs:
         working-directory: ios
         run: pod install
 
-      # Read the scheme from the generated workspace rather than hardcoding
-      # a name, since prebuild derives it from app.config.ts and nothing
-      # here should assume what that resolves to.
+      # Read the scheme from the app's own .xcodeproj (not the workspace):
+      # `xcodebuild -list -json -workspace` enumerates every shared scheme
+      # across ALL projects in the workspace, including CocoaPods-internal
+      # library targets (e.g. expo-application's pod is itself named
+      # "EXApplication" and exposes a workspace-level scheme). Two real runs
+      # picked schemes[0] from that list, got "EXApplication" (alphabetically
+      # before the real app scheme "LagoonMobile"), and silently built that
+      # Pods library instead of the app — a build that "succeeds" but never
+      # produces an .app, since it isn't the app target at all. Listing the
+      # single non-Pods .xcodeproj directly (it sits at the top of ios/;
+      # Pods.xcodeproj is nested under ios/Pods/ and excluded by the glob)
+      # returns only the app's own scheme.
       - name: Discover the Xcode scheme
         id: scheme
         working-directory: ios
         run: |
-          SCHEME=$(xcodebuild -list -json -workspace *.xcworkspace \
+          SCHEME=$(xcodebuild -list -json -project *.xcodeproj \
             | node -e "
-                const schemes = JSON.parse(require('fs').readFileSync(0, 'utf8')).workspace.schemes;
+                const schemes = JSON.parse(require('fs').readFileSync(0, 'utf8')).project.schemes;
                 if (!schemes || schemes.length === 0) {
-                  console.error('No schemes found in the generated workspace');
+                  console.error('No schemes found in the generated project');
                   process.exit(1);
                 }
                 console.log(schemes[0]);
               ")
           echo "name=$SCHEME" >> "$GITHUB_OUTPUT"
 
+      # Still built via the .xcworkspace (required for CocoaPods to link),
+      # just with the scheme name sourced from the app's own project above.
       - name: Build for iOS Simulator (unsigned)
         working-directory: ios
         run: |
@@ -90,11 +101,10 @@ jobs:
           name: ios-simulator-app
           # CocoaPods sets a per-target CONFIGURATION_BUILD_DIR, so the .app
           # lands nested under a directory named after the scheme, and the
-          # bundle itself is named after the scheme too (observed:
-          # Release-iphonesimulator/EXApplication/EXApplication.app). A
-          # Release-iphonesimulator/**/*.app glob did NOT match this (two
-          # consecutive real runs failed here), so this builds the path
-          # directly from the scheme name instead of globbing for it.
+          # bundle itself is named after the scheme too. Unverified against a
+          # real run yet with the corrected scheme name above — if this glob
+          # doesn't match either, check the actual CONFIGURATION_BUILD_DIR in
+          # the build log for the real path before re-guessing.
           path: ios/build/Build/Products/Release-iphonesimulator/${{ steps.scheme.outputs.name }}/${{ steps.scheme.outputs.name }}.app
           if-no-files-found: error
           retention-days: 14
