@@ -1,0 +1,65 @@
+query ProjectEnvVariables($name: String!) {
+  projectByName(name: $name) {
+    id
+    envVariables {
+      id
+      scope
+      name
+      value
+    }
+  }
+}
+
+query EnvironmentEnvVariables($name: String!, $project: Int!) {
+  environmentByName(name: $name, project: $project) {
+    id
+    envVariables {
+      id
+      scope
+      name
+      value
+    }
+  }
+}
+
+mutation AddEnvVariable(
+  $type: EnvVariableType!
+  $typeId: Int!
+  $scope: EnvVariableScope
+  $name: String!
+  $value: String!
+) {
+  addEnvVariable(input: { type: $type, typeId: $typeId, scope: $scope, name: $name, value: $value }) {
+    id
+    scope
+    name
+    value
+  }
+}
+
+mutation DeleteEnvVariable($id: Int!) {
+  deleteEnvVariable(input: { id: $id })
+}
+
+# --- Version-gated variants -------------------------------------------------
+
+mutation AddEnvVariableByNameDetailed(
+  $name: String!
+  $value: String!
+  $scope: EnvVariableScope
+  $project: String
+  $environment: String
+) {
+  addOrUpdateEnvVariableByName(
+    input: { name: $name, value: $value, scope: $scope, project: $project, environment: $environment }
+  ) {
+    id
+    scope
+    name
+    value
+  }
+}
+
+mutation DeleteEnvVariableByNameDetailed($name: String!, $project: String, $environment: String) {
+  deleteEnvVariableByName(input: { name: $name, project: $project, environment: $environment })
+}

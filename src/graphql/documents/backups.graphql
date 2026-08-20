@@ -1,0 +1,55 @@
+query EnvironmentBackups($name: String!, $project: Int!, $limit: Int) {
+  environmentByName(name: $name, project: $project) {
+    id
+    backups(limit: $limit) {
+      id
+      backupId
+      source
+      created
+      restore {
+        id
+        status
+        restoreLocation
+        created
+      }
+    }
+  }
+}
+
+mutation TriggerRestore($backupId: String!) {
+  addRestore(input: { backupId: $backupId, execute: true }) {
+    id
+    status
+    restoreLocation
+    created
+  }
+}
+
+mutation DeleteBackup($backupId: String!) {
+  deleteBackup(input: { backupId: $backupId })
+}
+
+# --- Version-gated variants -------------------------------------------------
+
+query EnvironmentBackupsDetailed($name: String!, $project: Int!, $limit: Int) {
+  environmentByName(name: $name, project: $project) {
+    id
+    backups(limit: $limit) {
+      id
+      backupId
+      source
+      created
+      restore {
+        id
+        status
+        restoreLocation
+        restoreSize
+        created
+      }
+    }
+  }
+}
+
+query DownloadBackupLinkDetailed($backupId: String!) {
+  getBackupDownloadLinkByBackupId(backupId: $backupId)
+}

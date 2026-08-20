@@ -36,6 +36,17 @@ const FEATURES = {
   cloneProject: '2.33.0',
   /** EnvironmentService.replicas — measured >=2.33; no document selects it yet */
   serviceReplicas: '2.33.0',
+  /**
+   * addOrUpdateEnvVariableByName / deleteEnvVariableByName /
+   * getEnvVariablesByProjectEnvironmentName. Unlike the entries above, this
+   * was pinned exactly (checked every minor release around the boundary,
+   * not coarse-sampled): absent at 2.10.0, present at 2.11.0.
+   */
+  envVariablesByName: '2.11.0',
+  /** getBackupDownloadLinkByBackupId. Pinned exactly: absent at 2.28.0, present at 2.29.0. */
+  backupDownloadLink: '2.29.0',
+  /** deleteRestore — pinned exactly: absent at 2.29.2, present at 2.30.0; no document selects it yet */
+  restoreDeletion: '2.30.0',
 } as const;
 
 export type Feature = keyof typeof FEATURES;

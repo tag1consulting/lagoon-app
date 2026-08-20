@@ -1,12 +1,14 @@
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useDeploymentEvents, useTaskEvents } from '@/api/liveUpdates';
+import { useBackupEvents, useDeploymentEvents, useTaskEvents } from '@/api/liveUpdates';
 import { hasFeature } from '@/api/versionGate';
+import { BackupRow, type BackupSummary } from '@/components/BackupRow';
 import { ConfirmSheet } from '@/components/ConfirmSheet';
+import { EnvVariablesPanel } from '@/components/EnvVariablesPanel';
 import { DeploymentRow, type DeploymentSummary } from '@/components/DeploymentRow';
 import { RunTaskSheet } from '@/components/RunTaskSheet';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -14,13 +16,18 @@ import { TaskRow, type TaskSummary } from '@/components/TaskRow';
 import { Button, Card, EmptyState } from '@/components/ui';
 import { useActiveContext } from '@/contexts/store';
 import {
+  DeleteBackupDocument,
   DeployLatestDocument,
+  DownloadBackupLinkDetailedDocument,
+  EnvironmentBackupsDetailedDocument,
+  EnvironmentBackupsDocument,
   EnvironmentDeploymentsDetailedDocument,
   EnvironmentDeploymentsDocument,
   EnvironmentInfoDetailedDocument,
   EnvironmentInfoDocument,
   EnvironmentTasksDetailedDocument,
   EnvironmentTasksDocument,
+  TriggerRestoreDocument,
   type EnvironmentInfoQuery,
 } from '@/graphql/generated/graphql';
 import { spacing, useTheme } from '@/theme';
@@ -205,7 +212,136 @@ function TasksTab({
   );
 }
 
-const TABS = ['Deployments', 'Tasks', 'Info'] as const;
+function BackupsTab({ envName, projectId }: { envName: string; projectId: string }) {
+  const context = useActiveContext();
+  const { data, loading, error, refetch, startPolling, stopPolling } = useQuery(
+    hasFeature(context ?? {}, 'backupDownloadLink')
+      ? EnvironmentBackupsDetailedDocument
+      : EnvironmentBackupsDocument,
+    {
+      variables: { name: envName, project: Number(projectId), limit: 25 },
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+
+  const backups = ((data?.environmentByName?.backups ?? []) as (BackupSummary | null)[]).filter(
+    (b): b is BackupSummary => Boolean(b),
+  );
+  const anyActive = backups.some((b) => isActiveStatus(b.restore?.status));
+
+  useBackupEvents(data?.environmentByName?.id, () => void refetch());
+
+  useEffect(() => {
+    if (anyActive) {
+      startPolling(ACTIVE_POLL_MS);
+      return () => stopPolling();
+    }
+    stopPolling();
+  }, [anyActive, startPolling, stopPolling]);
+
+  const [selectedBackup, setSelectedBackup] = useState<BackupSummary | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BackupSummary | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [triggerRestore, { loading: restoring }] = useMutation(TriggerRestoreDocument);
+  const [deleteBackup, { loading: deleting }] = useMutation(DeleteBackupDocument);
+  const [fetchDownloadLink] = useLazyQuery(DownloadBackupLinkDetailedDocument);
+  const theme = useTheme();
+  const canDownload = hasFeature(context ?? {}, 'backupDownloadLink');
+
+  const handleRestore = async () => {
+    if (!selectedBackup?.backupId) return;
+    setRestoreError(null);
+    try {
+      await triggerRestore({ variables: { backupId: selectedBackup.backupId } });
+      setSelectedBackup(null);
+      void refetch();
+    } catch (e) {
+      setRestoreError(e instanceof Error ? e.message : 'Restore failed to start.');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!pendingDelete?.backupId) return;
+    setDeleteError(null);
+    try {
+      await deleteBackup({ variables: { backupId: pendingDelete.backupId } });
+      setPendingDelete(null);
+      void refetch();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Could not delete backup.');
+    }
+  };
+
+  const handleDownload = async (backupId: string) => {
+    try {
+      const result = await fetchDownloadLink({ variables: { backupId } });
+      const url = result.data?.getBackupDownloadLinkByBackupId;
+      if (!url) throw new Error('No download link is available for this backup.');
+      await WebBrowser.openBrowserAsync(url);
+    } catch (e) {
+      Alert.alert(
+        'Could not get download link',
+        e instanceof Error ? e.message : 'Something went wrong.',
+      );
+    }
+  };
+
+  if (error) return <EmptyState title="Could not load backups" body={error.message} />;
+
+  return (
+    <View style={styles.tabBody}>
+      {backups.length === 0 && !loading ? (
+        <EmptyState title="No backups" body="This environment has no backups yet." />
+      ) : null}
+      {backups.map((backup) => (
+        <BackupRow
+          key={backup.id ?? backup.backupId}
+          backup={backup}
+          onRestore={() => setSelectedBackup(backup)}
+          onDelete={() => setPendingDelete(backup)}
+          onDownload={
+            canDownload && backup.backupId ? () => void handleDownload(backup.backupId!) : undefined
+          }
+        />
+      ))}
+
+      <ConfirmSheet
+        visible={Boolean(selectedBackup)}
+        title="Restore this backup?"
+        message={`This overwrites the current data in ${envName} with the ${selectedBackup?.created ?? 'selected'} backup.`}
+        confirmLabel="Restore"
+        destructive
+        busy={restoring}
+        onConfirm={() => void handleRestore()}
+        onDismiss={() => {
+          setSelectedBackup(null);
+          setRestoreError(null);
+        }}
+      >
+        {restoreError ? <Text style={{ color: theme.danger }}>{restoreError}</Text> : null}
+      </ConfirmSheet>
+
+      <ConfirmSheet
+        visible={Boolean(pendingDelete)}
+        title="Delete this backup?"
+        message="This removes the backup record. This cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        busy={deleting}
+        onConfirm={() => void handleDelete()}
+        onDismiss={() => {
+          setPendingDelete(null);
+          setDeleteError(null);
+        }}
+      >
+        {deleteError ? <Text style={{ color: theme.danger }}>{deleteError}</Text> : null}
+      </ConfirmSheet>
+    </View>
+  );
+}
+
+const TABS = ['Deployments', 'Tasks', 'Backups', 'Variables', 'Info'] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -324,6 +460,18 @@ export default function EnvironmentScreen() {
         ) : null}
         {tab === 'Tasks' ? (
           <TasksTab project={project ?? ''} envName={envName ?? ''} projectId={projectId ?? ''} />
+        ) : null}
+        {tab === 'Backups' ? (
+          <BackupsTab envName={envName ?? ''} projectId={projectId ?? ''} />
+        ) : null}
+        {tab === 'Variables' && env?.id ? (
+          <EnvVariablesPanel
+            scope="environment"
+            projectId={Number(projectId)}
+            projectName={project ?? ''}
+            environmentId={env.id}
+            environmentName={envName ?? ''}
+          />
         ) : null}
       </ScrollView>
     </>
